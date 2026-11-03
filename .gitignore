@@ -1,0 +1,25 @@
+# Maven target directory
+target/
+*.war
+*.ear
+
+# Embedded Tomcat temporary files
+tomcat.*/
+work/
+temp/
+
+# IDE & Editor files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
