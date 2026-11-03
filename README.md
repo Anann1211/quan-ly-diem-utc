@@ -90,27 +90,53 @@ Theo Quy chế đào tạo UTC và Thông tư 08/2021/TT-BGDĐT:
 
 ---
 
-## 5. HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG
+## 5. HƯỚNG DẪN CÀI ĐẶT & KHỞI CHẠY (DÀNH CHO NGƯỜI MỚI TẢI TỪ GITHUB)
 
-### Cách 1: Khởi chạy bằng PowerShell (Khuyến nghị)
+> [!IMPORTANT]
+> **Dự án sử dụng Oracle Database 23ai làm cốt lõi lưu trữ dữ liệu.**  
+> Trước khi khởi chạy ứng dụng, bạn **bắt buộc phải thực hiện Bước 1** để khởi tạo các bảng và tài khoản thử nghiệm trên Oracle Database. Nếu chưa chạy CSDL, chức năng Đăng nhập 1-Click sẽ báo lỗi không kết nối được CSDL.
+
+### Bước 1: Khởi tạo Cơ sở dữ liệu Oracle Database 23ai
+1. Mở công cụ quản trị Oracle (như **DBeaver**, **Oracle SQL Developer**, hoặc **SQL*Plus**).
+2. Kết nối vào Oracle Database với quyền `SYS` hoặc `SYSTEM` (Pluggable Database: `FREEPDB1` hoặc service tương ứng trên máy bạn).
+3. Mở và thực thi toàn bộ kịch bản SQL tại:
+   👉 **`database/init_db.sql`**
+   *(Kịch bản này tự động tạo 12 bảng chuẩn hóa, ràng buộc khóa ngoại, bảng mã hóa tiếng Việt và nạp sẵn toàn bộ tài khoản mẫu Admin, Giảng viên, Sinh viên, Điểm học phần thực tế)*.
+
+### Bước 2: Kiểm tra cấu hình kết nối CSDL
+Mở file **`src/main/resources/db.properties`** và điều chỉnh nếu thông số Oracle trên máy bạn khác với mặc định:
+```properties
+db.driver=oracle.jdbc.OracleDriver
+db.url=jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+db.user=utc_grade
+db.password=utc123
+```
+*(Nếu dùng Oracle XE/19c/21c, bạn chỉ cần đổi `FREEPDB1` thành `XE`, `XEPDB1` hoặc `ORCL` tương ứng)*.
+
+### Bước 3: Khởi chạy hệ thống (1-Click)
+
+#### Cách 1: Khởi chạy bằng PowerShell (Khuyến nghị)
 Mở PowerShell tại thư mục dự án và chạy:
 ```powershell
 .\scripts\run.ps1
 ```
 
-### Cách 2: Khởi chạy bằng Command Prompt (CMD)
-Nhấp đúp chuột vào file `scripts\run.bat` hoặc gõ:
+#### Cách 2: Khởi chạy bằng Command Prompt (CMD)
+Nhấp đúp chuột vào file `scripts\run.bat` hoặc gõ trong terminal:
 ```cmd
 scripts\run.bat
 ```
 
-### Cách 3: Khởi chạy trực tiếp qua lệnh Maven
+#### Cách 3: Khởi chạy trực tiếp qua lệnh Maven
 ```bash
 mvn compile exec:java
 ```
 
-Sau khi khởi chạy thành công, mở trình duyệt web và truy cập:
+### Bước 4: Truy cập và Đăng nhập
+Sau khi server hiển thị thông báo khởi động thành công, mở trình duyệt web và truy cập:
 👉 **`http://localhost:8080`**
+
+Tại màn hình Đăng nhập, bấm vào một trong các nút **1-Click** (Admin / Giảng viên / Sinh viên) để tự động đăng nhập và trải nghiệm toàn bộ tính năng!
 
 ---
 

@@ -68,33 +68,40 @@ public class AuthServlet extends HttpServlet {
             return;
         }
 
-        User user = userDAO.login(username.trim(), password.trim());
-        if (user == null) {
-            req.setAttribute("error", "Tên đăng nhập hoặc mật khẩu không chính xác!");
+        try {
+            User user = userDAO.login(username.trim(), password.trim());
+            if (user == null) {
+                req.setAttribute("error", "Tên đăng nhập hoặc mật khẩu không chính xác!");
+                req.setAttribute("username", username);
+                req.getRequestDispatcher("/WEB-INF/views/auth/login.jsp").forward(req, resp);
+                return;
+            }
+
+            // Phòng chống tấn công Session Fixation: Hủy session cũ trước khi cấp session mới
+            HttpSession oldSession = req.getSession(false);
+            if (oldSession != null) {
+                oldSession.invalidate();
+            }
+
+            HttpSession session = req.getSession(true);
+            session.setAttribute("currentUser", user);
+
+            // Lưu thông tin chi tiết vai trò
+            if (user.isStudent()) {
+                Student student = studentDAO.getStudentByUserId(user.getId());
+                session.setAttribute("currentStudent", student);
+            } else if (user.isLecturer()) {
+                Lecturer lecturer = lecturerDAO.getLecturerByUserId(user.getId());
+                session.setAttribute("currentLecturer", lecturer);
+            }
+
+            redirectByRole(user, req, resp);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            req.setAttribute("error", "LỖI KẾT NỐI CƠ SỞ DỮ LIỆU: Không thể kết nối tới Oracle Database 23ai (" + e.getMessage() + "). Vui lòng đảm bảo dịch vụ Oracle đang chạy, đã chạy script 'database/init_db.sql' và cấu hình đúng trong file 'src/main/resources/db.properties'.");
             req.setAttribute("username", username);
             req.getRequestDispatcher("/WEB-INF/views/auth/login.jsp").forward(req, resp);
-            return;
         }
-
-        // Phòng chống tấn công Session Fixation: Hủy session cũ trước khi cấp session mới
-        HttpSession oldSession = req.getSession(false);
-        if (oldSession != null) {
-            oldSession.invalidate();
-        }
-
-        HttpSession session = req.getSession(true);
-        session.setAttribute("currentUser", user);
-
-        // Lưu thông tin chi tiết vai trò
-        if (user.isStudent()) {
-            Student student = studentDAO.getStudentByUserId(user.getId());
-            session.setAttribute("currentStudent", student);
-        } else if (user.isLecturer()) {
-            Lecturer lecturer = lecturerDAO.getLecturerByUserId(user.getId());
-            session.setAttribute("currentLecturer", lecturer);
-        }
-
-        redirectByRole(user, req, resp);
     }
 
     private void handleChangePassword(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {

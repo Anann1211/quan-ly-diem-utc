@@ -10,7 +10,7 @@ import vn.edu.utc.grade.model.account.User;
 
 public class UserDAO {
 
-    public User login(String username, String password) {
+    public User login(String username, String password) throws java.sql.SQLException {
         String sql = "SELECT ID, TEN_DANG_NHAP, MAT_KHAU, VAI_TRO, HO_TEN, EMAIL, SO_DIEN_THOAI, TRANG_THAI " +
                      "FROM TAI_KHOAN WHERE TEN_DANG_NHAP = ? AND MAT_KHAU = ? AND TRANG_THAI = 1";
         Connection conn = null;
@@ -34,8 +34,6 @@ public class UserDAO {
                     rs.getInt("TRANG_THAI")
                 );
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         } finally {
             DBConnection.close(rs, ps, conn);
         }

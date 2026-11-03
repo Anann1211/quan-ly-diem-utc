@@ -88,7 +88,7 @@
             </c:if>
 
             <!-- Form -->
-            <form action="${pageContext.request.contextPath}/login" method="POST" class="space-y-4">
+            <form id="loginForm" action="${pageContext.request.contextPath}/login" method="POST" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5" for="username">
                         Tên đăng nhập / Mã SV / Mã GV
@@ -164,9 +164,14 @@
 
     <script>
         function quickLogin(u, p) {
-            document.getElementById('username').value = u;
-            document.getElementById('password').value = p;
-            document.querySelector('form').submit();
+            var form = document.getElementById('loginForm') || document.querySelector('form');
+            var uInput = document.getElementById('username');
+            var pInput = document.getElementById('password');
+            if (uInput && pInput && form) {
+                uInput.value = u;
+                pInput.value = p;
+                form.submit();
+            }
         }
     </script>
 </body>
