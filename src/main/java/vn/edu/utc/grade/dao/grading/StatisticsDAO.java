@@ -40,10 +40,10 @@ public class StatisticsDAO {
             if (rs.next()) map.put("totalClasses", rs.getInt(1));
             rs.close(); ps.close();
 
-            // Tổng đơn phúc khảo chờ xử lý
-            ps = conn.prepareStatement("SELECT COUNT(*) FROM PHUC_KHAO WHERE TRANG_THAI = 'PENDING'");
+            // Tổng môn học đào tạo
+            ps = conn.prepareStatement("SELECT COUNT(*) FROM MON_HOC");
             rs = ps.executeQuery();
-            if (rs.next()) map.put("pendingAppeals", rs.getInt(1));
+            if (rs.next()) map.put("totalSubjects", rs.getInt(1));
             rs.close(); ps.close();
 
             // Lớp HP đã công bố điểm

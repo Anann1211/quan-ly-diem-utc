@@ -19,35 +19,8 @@
                 <i class="fa-solid fa-clipboard-check"></i>
                 <span>Duyệt điểm (${summary.submittedClasses != null ? summary.submittedClasses : 0})</span>
             </a>
-            <a href="${pageContext.request.contextPath}/admin/appeals" 
-               class="flex-1 sm:flex-initial px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition flex items-center justify-center space-x-1.5">
-                <i class="fa-solid fa-file-pen"></i>
-                <span>Phúc khảo (${summary.pendingAppeals != null ? summary.pendingAppeals : 0})</span>
-            </a>
         </div>
     </div>
-
-    <!-- Alert Đơn Xin Nghỉ Cần Xử Lý -->
-    <c:if test="${pendingLeavesCount > 0}">
-        <div class="p-4 bg-amber-50 border-2 border-amber-300 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-            <div class="flex items-start sm:items-center space-x-3">
-                <div class="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-base flex-shrink-0 animate-pulse">
-                    <i class="fa-solid fa-bell"></i>
-                </div>
-                <div>
-                    <h4 class="text-xs font-bold text-amber-900 uppercase">Thông Báo Thời Khóa Biểu & Giảng Đường</h4>
-                    <p class="text-xs text-amber-800 mt-0.5">
-                        Có <span class="px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-bold">${pendingLeavesCount}</span> đơn xin báo nghỉ & kế hoạch dạy bù của Giảng viên đang chờ Phòng Đào tạo duyệt!
-                    </p>
-                </div>
-            </div>
-            <a href="${pageContext.request.contextPath}/admin/schedules?tab=leaves" 
-               class="w-full sm:w-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-xs whitespace-nowrap">
-                <span>Xem & Duyệt Ngay</span>
-                <i class="fa-solid fa-arrow-right"></i>
-            </a>
-        </div>
-    </c:if>
 
     <!-- Quick Stat Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -84,14 +57,14 @@
             </div>
         </div>
 
-        <!-- Đơn phúc khảo chờ xử lý -->
+        <!-- Môn học đào tạo -->
         <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center space-x-4">
-            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
-                <i class="fa-solid fa-hourglass-half"></i>
+            <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl flex-shrink-0">
+                <i class="fa-solid fa-book-bookmark"></i>
             </div>
             <div>
-                <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Đơn Phúc Khảo Chờ</div>
-                <div class="text-2xl font-bold text-amber-600">${summary.pendingAppeals}</div>
+                <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Môn Học Đào Tạo</div>
+                <div class="text-2xl font-bold text-cyan-700">${summary.totalSubjects}</div>
             </div>
         </div>
     </div>
@@ -141,53 +114,6 @@
                     </div>
                 </c:forEach>
             </div>
-        </div>
-    </div>
-
-    <!-- Recent Appeals Table -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
-            <h2 class="text-base font-bold text-slate-800 flex items-center">
-                <i class="fa-solid fa-clock-rotate-left text-utc-blue mr-2"></i>Đơn Phúc Khảo Gần Đây
-            </h2>
-            <a href="${pageContext.request.contextPath}/admin/appeals" class="text-xs text-utc-blue hover:underline font-semibold">
-                Quản lý tất cả đơn <i class="fa-solid fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-600">
-                <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-[11px] border-b border-slate-200">
-                    <tr>
-                        <th class="px-4 py-3">Mã SV</th>
-                        <th class="px-4 py-3">Họ và tên</th>
-                        <th class="px-4 py-3">Lớp học phần</th>
-                        <th class="px-4 py-3">Điểm thi cũ</th>
-                        <th class="px-4 py-3">Lý do phúc khảo</th>
-                        <th class="px-4 py-3">Trạng thái</th>
-                        <th class="px-4 py-3 text-center">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                    <c:forEach var="ap" items="${recentAppeals}">
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-4 py-3 font-semibold text-slate-800">${ap.studentId}</td>
-                            <td class="px-4 py-3">${ap.studentName}</td>
-                            <td class="px-4 py-3">${ap.courseClassName}</td>
-                            <td class="px-4 py-3 font-bold text-amber-600">${ap.oldFinalScore}</td>
-                            <td class="px-4 py-3 max-w-xs truncate" title="${ap.reason}">${ap.reason}</td>
-                            <td class="px-4 py-3">${ap.statusBadge}</td>
-                            <td class="px-4 py-3 text-center">
-                                <a href="${pageContext.request.contextPath}/admin/appeals" class="text-utc-blue hover:underline font-medium">Xử lý</a>
-                            </td>
-                        </tr>
-                    </c:forEach>
-                    <c:if test="${empty recentAppeals}">
-                        <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-slate-400">Không có đơn phúc khảo nào cần xử lý.</td>
-                        </tr>
-                    </c:if>
-                </tbody>
-            </table>
         </div>
     </div>
 

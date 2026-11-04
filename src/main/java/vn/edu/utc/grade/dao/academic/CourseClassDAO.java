@@ -177,29 +177,6 @@ public class CourseClassDAO {
         return 0;
     }
 
-    public int countPendingAppeals(String classId) {
-        String sql = "SELECT COUNT(*) FROM PHUC_KHAO pk " +
-                     "JOIN BANG_DIEM bd ON pk.BANG_DIEM_ID = bd.ID " +
-                     "WHERE bd.MA_LHP = ? AND pk.TRANG_THAI = 'PENDING'";
-        Connection conn = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            conn = DBConnection.getConnection();
-            ps = conn.prepareStatement(sql);
-            ps.setString(1, classId);
-            rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            DBConnection.close(rs, ps, conn);
-        }
-        return 0;
-    }
-
     public boolean updateCourseClass(CourseClass c) {
         String sql = "UPDATE LOP_HOC_PHAN SET TEN_LHP = ?, MA_MON = ?, MA_HOC_KY = ?, MA_GV = ?, " +
                      "PHONG_HOC = ?, SI_SO = ? WHERE MA_LHP = ?";
@@ -232,10 +209,6 @@ public class CourseClassDAO {
 
         if ("PUBLISHED".equalsIgnoreCase(cc.getGradeStatus())) {
             throw new IllegalStateException("Không thể xóa lớp học phần đã công bố điểm chính thức!");
-        }
-
-        if (countPendingAppeals(classId) > 0) {
-            throw new IllegalStateException("Lớp học phần đang có đơn phúc khảo chưa giải quyết, không thể xóa!");
         }
 
         String sql = "DELETE FROM LOP_HOC_PHAN WHERE MA_LHP = ?";

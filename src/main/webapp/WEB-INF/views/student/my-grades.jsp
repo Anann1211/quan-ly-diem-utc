@@ -35,11 +35,6 @@
                     <i class="fa-solid fa-print"></i>
                     <span>In Bảng Điểm</span>
                 </a>
-                <a href="${pageContext.request.contextPath}/student/appeals"
-                   class="flex-1 sm:flex-initial px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center space-x-1.5">
-                    <i class="fa-solid fa-file-pen"></i>
-                    <span>Đơn Phúc Khảo</span>
-                </a>
             </div>
         </div>
 
@@ -117,7 +112,6 @@
                         <th class="px-4 py-3.5 text-center">Điểm Chữ</th>
                         <th class="px-4 py-3.5 text-center">Thang 4</th>
                         <th class="px-4 py-3.5 text-center">Kết Quả</th>
-                        <th class="px-4 py-3.5 text-center no-print">Phúc Khảo</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
@@ -139,17 +133,11 @@
                             <td class="px-4 py-3 text-center text-sm">${g.letterBadge}</td>
                             <td class="px-4 py-3 text-center font-bold text-slate-700">${g.scoreScale4 != null ? g.scoreScale4 : '-'}</td>
                             <td class="px-4 py-3 text-center">${g.resultBadge}</td>
-                            <td class="px-4 py-3 text-center no-print">
-                                <a href="${pageContext.request.contextPath}/student/appeals?gradeId=${g.id}"
-                                   class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-[11px] transition inline-flex items-center">
-                                    <i class="fa-solid fa-file-pen mr-1"></i>Phúc khảo
-                                </a>
-                            </td>
                         </tr>
                     </c:forEach>
                     <c:if test="${empty grades}">
                         <tr>
-                            <td colspan="13" class="px-4 py-12 text-center text-slate-400">
+                            <td colspan="12" class="px-4 py-12 text-center text-slate-400">
                                 Chưa có dữ liệu bảng điểm nào cho học kỳ được chọn.
                             </td>
                         </tr>

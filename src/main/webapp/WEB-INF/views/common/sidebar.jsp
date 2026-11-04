@@ -48,18 +48,6 @@
                     <i class="fa-solid fa-chalkboard w-5 mr-2 text-indigo-500"></i>
                     <span>Lớp học phần</span>
                 </a>
-                <a href="${pageContext.request.contextPath}/admin/schedules" 
-                   class="flex items-center justify-between px-3 py-2 rounded-lg transition ${activeMenu == 'schedules' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
-                    <div class="flex items-center">
-                        <i class="fa-solid fa-calendar-days w-5 mr-2 text-rose-500"></i>
-                        <span>Thời Khóa Biểu & Lịch Học</span>
-                    </div>
-                    <c:if test="${pendingLeavesCount > 0}">
-                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse">
-                            ${pendingLeavesCount}
-                        </span>
-                    </c:if>
-                </a>
                 <a href="${pageContext.request.contextPath}/admin/grade-approval" 
                    class="flex items-center px-3 py-2 rounded-lg transition ${activeMenu == 'approval' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
                     <i class="fa-solid fa-clipboard-check w-5 mr-2 text-emerald-500"></i>
@@ -69,11 +57,6 @@
                    class="flex items-center px-3 py-2 rounded-lg transition ${activeMenu == 'faculty-grades' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
                     <i class="fa-solid fa-layer-group w-5 mr-2 text-blue-600"></i>
                     <span>Điểm theo Khoa & Lớp</span>
-                </a>
-                <a href="${pageContext.request.contextPath}/admin/appeals" 
-                   class="flex items-center px-3 py-2 rounded-lg transition ${activeMenu == 'appeals' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
-                    <i class="fa-solid fa-file-pen w-5 mr-2 text-amber-500"></i>
-                    <span>Xử lý Phúc khảo</span>
                 </a>
                 <a href="${pageContext.request.contextPath}/admin/subjects" 
                    class="flex items-center px-3 py-2 rounded-lg transition ${activeMenu == 'subjects' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
@@ -99,29 +82,14 @@
                     <i class="fa-solid fa-folder-open w-5 mr-2 text-sky-500"></i>
                     <span>Lớp học phần phụ trách</span>
                 </a>
-                <a href="${pageContext.request.contextPath}/lecturer/schedule" 
-                   class="flex items-center px-3 py-2.5 rounded-lg transition ${activeMenu == 'schedule' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
-                    <i class="fa-solid fa-calendar-check w-5 mr-2 text-emerald-500"></i>
-                    <span>Lịch Dạy & Giảng Đường</span>
-                </a>
             </c:if>
 
             <!-- STUDENT MENU -->
             <c:if test="${sessionScope.currentUser.role == 'SINH_VIEN'}">
-                <a href="${pageContext.request.contextPath}/student/schedule" 
-                   class="flex items-center px-3 py-2.5 rounded-lg transition ${activeMenu == 'schedule' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
-                    <i class="fa-solid fa-calendar-days w-5 mr-2 text-indigo-500"></i>
-                    <span>Thời Khóa Biểu & Lịch Thi</span>
-                </a>
                 <a href="${pageContext.request.contextPath}/student/grades" 
                    class="flex items-center px-3 py-2.5 rounded-lg transition ${activeMenu == 'grades' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
                     <i class="fa-solid fa-table-list w-5 mr-2 text-emerald-500"></i>
                     <span>Bảng điểm học tập</span>
-                </a>
-                <a href="${pageContext.request.contextPath}/student/appeals" 
-                   class="flex items-center px-3 py-2.5 rounded-lg transition ${activeMenu == 'appeals' ? 'bg-utc-blue text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}">
-                    <i class="fa-solid fa-file-pen w-5 mr-2 text-amber-500"></i>
-                    <span>Đơn phúc khảo điểm</span>
                 </a>
                 <a href="${pageContext.request.contextPath}/student/print-transcript" 
                    target="_blank"
@@ -227,18 +195,6 @@
                 <i class="fa-solid fa-chalkboard w-5 mr-2.5 text-indigo-500"></i>
                 <span>Lớp học phần</span>
             </a>
-            <a href="${pageContext.request.contextPath}/admin/schedules" 
-               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'schedules' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
-                <div class="flex items-center">
-                    <i class="fa-solid fa-calendar-days w-5 mr-2.5 text-rose-500"></i>
-                    <span>Thời Khóa Biểu & Lịch Học</span>
-                </div>
-                <c:if test="${pendingLeavesCount > 0}">
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse">
-                        ${pendingLeavesCount}
-                    </span>
-                </c:if>
-            </a>
             <a href="${pageContext.request.contextPath}/admin/grade-approval" 
                class="flex items-center px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'approval' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
                 <i class="fa-solid fa-clipboard-check w-5 mr-2.5 text-emerald-500"></i>
@@ -248,11 +204,6 @@
                class="flex items-center px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'faculty-grades' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
                 <i class="fa-solid fa-layer-group w-5 mr-2.5 text-blue-600"></i>
                 <span>Điểm theo Khoa & Lớp</span>
-            </a>
-            <a href="${pageContext.request.contextPath}/admin/appeals" 
-               class="flex items-center px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'appeals' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
-                <i class="fa-solid fa-file-pen w-5 mr-2.5 text-amber-500"></i>
-                <span>Xử lý Phúc khảo</span>
             </a>
             <a href="${pageContext.request.contextPath}/admin/subjects" 
                class="flex items-center px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'subjects' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
@@ -278,29 +229,14 @@
                 <i class="fa-solid fa-folder-open w-5 mr-2.5 text-sky-500"></i>
                 <span>Lớp học phần phụ trách</span>
             </a>
-            <a href="${pageContext.request.contextPath}/lecturer/schedule" 
-               class="flex items-center px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'schedule' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
-                <i class="fa-solid fa-calendar-check w-5 mr-2.5 text-emerald-500"></i>
-                <span>Lịch Dạy & Giảng Đường</span>
-            </a>
         </c:if>
 
         <!-- STUDENT MENU -->
         <c:if test="${sessionScope.currentUser.role == 'SINH_VIEN'}">
-            <a href="${pageContext.request.contextPath}/student/schedule" 
-               class="flex items-center px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'schedule' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
-                <i class="fa-solid fa-calendar-days w-5 mr-2.5 text-indigo-500"></i>
-                <span>Thời Khóa Biểu & Lịch Thi</span>
-            </a>
             <a href="${pageContext.request.contextPath}/student/grades" 
                class="flex items-center px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'grades' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
                 <i class="fa-solid fa-table-list w-5 mr-2.5 text-emerald-500"></i>
                 <span>Bảng điểm học tập</span>
-            </a>
-            <a href="${pageContext.request.contextPath}/student/appeals" 
-               class="flex items-center px-3.5 py-2.5 rounded-xl transition ${activeMenu == 'appeals' ? 'bg-utc-blue text-white shadow-sm font-bold' : 'text-slate-700 hover:bg-slate-100'}">
-                <i class="fa-solid fa-file-pen w-5 mr-2.5 text-amber-500"></i>
-                <span>Đơn phúc khảo điểm</span>
             </a>
             <a href="${pageContext.request.contextPath}/student/print-transcript" 
                target="_blank"

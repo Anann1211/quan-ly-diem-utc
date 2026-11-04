@@ -25,9 +25,8 @@ Dự án Web Quản lý điểm sinh viên theo học chế tín chỉ cho **Tr�
 ## 2. CÁC PHÂN HỆ VÀ TÍNH NĂNG CHẮT LỌC VƯỢT TRỘI
 
 ### 2.1. Phân hệ Phòng Đào Tạo (Role: `ADMIN`)
-- **Dashboard Tổng quan**: Thống kê số lượng sinh viên, giảng viên, lớp học phần, đơn phúc khảo; biểu đồ phổ điểm toàn trường thời gian thực.
+- **Dashboard Tổng quan**: Thống kê số lượng sinh viên, giảng viên, lớp học phần, môn học đào tạo; biểu đồ phổ điểm toàn trường thời gian thực.
 - **Duyệt & Công bố Bảng điểm**: Quy trình kiểm duyệt bảng điểm do giảng viên nộp; chuyển trạng thái từ `SUBMITTED` $\rightarrow$ `PUBLISHED` để sinh viên tra cứu chính thức.
-- **Tiếp nhận & Xử lý Phúc khảo**: Hội đồng chấm lại xem xét đơn đề nghị, cập nhật điểm thi mới, tự động tính lại toàn bộ điểm tổng kết, điểm chữ, thang 4 và CPA; tự động ghi vết Audit Log.
 - **Nhật ký sửa điểm (Audit Log)**: Lưu vết toàn bộ lịch sử biến động điểm (*Người sửa, Thời gian, Điểm cũ, Điểm mới, Lý do*) đảm bảo tính minh bạch tuyệt đối.
 - **Quản lý Môn học & Cấu hình Trọng số**: Thêm, sửa tỷ lệ % Chuyên cần, % Giữa kỳ, % Thi (kiểm tra chặt chẽ tổng phải bằng 100%).
 - **Quản lý Lớp học phần**: Mở lớp theo từng học kỳ, chỉ định giảng viên giảng dạy.
@@ -44,7 +43,6 @@ Dự án Web Quản lý điểm sinh viên theo học chế tín chỉ cho **Tr�
 ### 2.3. Phân hệ Sinh Viên (Role: `SINH_VIEN`)
 - **Tra cứu Bảng điểm**: Xem chi tiết điểm chuyên cần, giữa kỳ, thi kết thúc, tổng kết 10, điểm chữ và thang 4 theo từng học kỳ hoặc toàn khóa.
 - **Theo dõi Tiến độ & Học lực**: Thẻ KPI tổng kết GPA học kỳ, CPA tích lũy chuẩn quy chế tín chỉ UTC.
-- **Đơn Phúc khảo trực tuyến**: Nộp đơn khiếu nại điểm thi ngay trên web; cơ chế chống nộp trùng đơn khi đơn cũ đang ở trạng thái `PENDING`.
 - **In Bảng điểm chuẩn A4**: Trang in bảng điểm định dạng chuẩn trang A4 của Trường ĐH Giao thông Vận tải với quốc hiệu, tiêu ngữ, chữ ký Trưởng Phòng Đào Tạo.
 
 ---
@@ -81,12 +79,12 @@ Theo Quy chế đào tạo UTC và Thông tư 08/2021/TT-BGDĐT:
 
 | Vai trò | Tên đăng nhập | Mật khẩu | Họ và tên | Chức năng tiêu biểu |
 | :--- | :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `admin123` | Phòng Đào Tạo UTC | Duyệt điểm, xử lý phúc khảo, xem Audit Log, cấu hình môn học |
+| **Admin** | `admin` | `admin123` | Phòng Đào Tạo UTC | Duyệt điểm, xem Audit Log, quản lý lớp & cấu hình môn học |
 | **Giảng viên** | `gv_nguyenvanan` | `gv123` | TS. Nguyễn Văn An | Nhập điểm lớp OOP Java, Import/Export Excel, nộp điểm |
 | **Giảng viên** | `gv_tranbichngoc` | `gv123` | ThS. Trần Bích Ngọc | Quản lý lớp Cơ sở dữ liệu Oracle |
-| **Giảng viên** | `gv_lequanghuy` | `gv123` | TS. Lê Quang Huy | Quản lý lớp Mạng máy tính |
+| **Giảng viên** | `gv_lequanghuy` | `gv123` | TS. Lê Quang Huy | Quản lý lớp Cấu trúc dữ liệu & giải thuật |
 | **Sinh viên** | `211200001` | `sv123` | Nguyễn Hoàng Nam (CNTT1-K62) | Xem bảng điểm cá nhân, CPA 3.8, in bảng điểm A4 |
-| **Sinh viên** | `211200007` | `sv123` | Hoàng Thị Lan (CNTT1-K62) | Xem điểm môn Cấu trúc dữ liệu và theo dõi đơn phúc khảo |
+| **Sinh viên** | `211200007` | `sv123` | Hoàng Thị Lan (CNTT1-K62) | Xem điểm môn Cấu trúc dữ liệu, theo dõi kết quả học tập |
 
 ---
 
@@ -169,12 +167,15 @@ Bài tập nhóm/
     │   │   │   ├── lecturer/
     │   │   │   │   └── LecturerServlet.java      # Điều hướng nghiệp vụ Giảng viên (Lớp dạy, Nhập điểm, Excel)
     │   │   │   ├── student/
-    │   │   │   │   └── StudentServlet.java       # Điều hướng nghiệp vụ Sinh viên (Xem điểm, Phúc khảo)
+    │   │   │   │   └── StudentServlet.java       # Điều hướng nghiệp vụ Sinh viên (Xem điểm, In bảng điểm)
     │   │   │   └── admin/                        # Nhóm Servlet quản trị đào tạo (Chia nhỏ theo nghiệp vụ)
     │   │   │       ├── AdminDashboardServlet.java# Bảng điều khiển và thống kê tổng quan
-    │   │   │       ├── GradeApprovalServlet.java # Phê duyệt bảng điểm và xử lý đơn phúc khảo
-    │   │   │       ├── AcademicManageServlet.java# Quản lý học phần, lớp học phần, học kỳ
-    │   │   │       └── AuditLogServlet.java      # Tra cứu nhật ký hoạt động và bảo mật hệ thống
+    │   │   │       ├── GradeApprovalServlet.java # Phê duyệt bảng điểm học phần
+    │   │   │       ├── AcademicManageServlet.java# Quản lý học phần, lớp học phần
+    │   │   │       ├── AcademicClassServlet.java # Quản lý lớp chuyên ngành & sinh viên
+    │   │   │       ├── FacultyGradeServlet.java  # Quản lý điểm theo Khoa & Lớp
+    │   │   │       ├── UserManageServlet.java    # Quản lý người dùng
+    │   │   │       └── AuditLogServlet.java      # Tra cứu nhật ký biến động điểm
     │   │   │
     │   │   ├── service/                          # Tầng Nghiệp vụ (Business Logic Layer)
     │   │   │   ├── GradeCalculator.java          # Thuật toán quy đổi điểm chữ, hệ 4 và tính GPA/CPA chuẩn UTC
@@ -188,17 +189,18 @@ Bài tập nhóm/
     │   │   │   ├── academic/                     # Nhóm DAO quản lý đào tạo
     │   │   │   │   ├── SubjectDAO.java
     │   │   │   │   ├── CourseClassDAO.java
+    │   │   │   │   ├── AcademicClassDAO.java
+    │   │   │   │   ├── FacultyDAO.java
     │   │   │   │   └── SemesterDAO.java
-    │   │   │   └── grading/                      # Nhóm DAO quản lý điểm số, phúc khảo & thống kê
+    │   │   │   └── grading/                      # Nhóm DAO quản lý điểm số & thống kê
     │   │   │       ├── GradeDAO.java
-    │   │   │       ├── AppealDAO.java
     │   │   │       ├── StatisticsDAO.java
     │   │   │       └── AuditLogDAO.java
     │   │   │
     │   │   └── model/                            # Tầng Thực thể dữ liệu (Domain Model / POJO Entities)
     │   │       ├── account/                      # User.java, Student.java, Lecturer.java
     │   │       ├── academic/                     # Subject.java, CourseClass.java, Semester.java, Faculty.java,...
-    │   │       └── grading/                      # Grade.java, Appeal.java, AuditLog.java
+    │   │       └── grading/                      # Grade.java, AuditLog.java
     │   │
     │   └── webapp/                               # Tầng Giao diện người dùng (Frontend & JSP Views)
     │       ├── index.jsp                         # Trang điều hướng mặc định
@@ -208,9 +210,9 @@ Bài tập nhóm/
     │           └── views/                        # Các trang giao diện JSP (bảo vệ bên trong WEB-INF)
     │               ├── common/                   # Thành phần dùng chung: header.jsp, sidebar.jsp, footer.jsp
     │               ├── auth/                     # Giao diện xác thực: login.jsp, change-password.jsp
-    │               ├── admin/                    # dashboard, grade-approval, appeals, subjects, classes, statistics
+    │               ├── admin/                    # dashboard, grade-approval, subjects, classes, statistics,...
     │               ├── lecturer/                 # my-classes.jsp, grade-input.jsp
-    │               └── student/                  # my-grades.jsp, appeals.jsp, transcript-print.jsp
+    │               └── student/                  # my-grades.jsp, transcript-print.jsp
     │
     └── test/                                     # Tầng Kiểm thử tự động (Unit & Integration Tests)
         └── java/vn/edu/utc/grade/

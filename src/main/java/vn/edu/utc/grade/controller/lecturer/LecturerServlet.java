@@ -14,14 +14,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import vn.edu.utc.grade.dao.academic.CourseClassDAO;
-import vn.edu.utc.grade.dao.academic.LeaveRequestDAO;
-import vn.edu.utc.grade.dao.academic.ScheduleDAO;
 import vn.edu.utc.grade.dao.academic.SemesterDAO;
 import vn.edu.utc.grade.dao.account.LecturerDAO;
 import vn.edu.utc.grade.dao.grading.GradeDAO;
 import vn.edu.utc.grade.model.academic.CourseClass;
-import vn.edu.utc.grade.model.academic.LeaveRequest;
-import vn.edu.utc.grade.model.academic.Schedule;
 import vn.edu.utc.grade.model.academic.Semester;
 import vn.edu.utc.grade.model.account.Lecturer;
 import vn.edu.utc.grade.model.grading.Grade;
@@ -34,9 +30,7 @@ import vn.edu.utc.grade.service.GradeCalculator;
     "/lecturer/save-grades",
     "/lecturer/submit-grades",
     "/lecturer/export-excel",
-    "/lecturer/import-excel",
-    "/lecturer/schedule",
-    "/lecturer/request-leave"
+    "/lecturer/import-excel"
 })
 @MultipartConfig(fileSizeThreshold = 1024 * 1024 * 2, maxFileSize = 1024 * 1024 * 10, maxRequestSize = 1024 * 1024 * 50)
 public class LecturerServlet extends HttpServlet {
@@ -44,8 +38,6 @@ public class LecturerServlet extends HttpServlet {
     private CourseClassDAO courseClassDAO;
     private GradeDAO gradeDAO;
     private SemesterDAO semesterDAO;
-    private ScheduleDAO scheduleDAO;
-    private LeaveRequestDAO leaveRequestDAO;
     private LecturerDAO lecturerDAO;
 
     @Override
@@ -53,8 +45,6 @@ public class LecturerServlet extends HttpServlet {
         courseClassDAO = new CourseClassDAO();
         gradeDAO = new GradeDAO();
         semesterDAO = new SemesterDAO();
-        scheduleDAO = new ScheduleDAO();
-        leaveRequestDAO = new LeaveRequestDAO();
         lecturerDAO = new LecturerDAO();
     }
 
@@ -77,9 +67,6 @@ public class LecturerServlet extends HttpServlet {
             case "/lecturer/export-excel":
                 handleExportExcel(req, resp, lecturer);
                 break;
-            case "/lecturer/schedule":
-                handleSchedule(req, resp, lecturer);
-                break;
             default:
                 resp.sendRedirect(req.getContextPath() + "/lecturer/classes");
                 break;
@@ -101,81 +88,9 @@ public class LecturerServlet extends HttpServlet {
             handleSaveGrades(req, resp, lecturer, true);
         } else if ("/lecturer/import-excel".equals(path)) {
             handleImportExcel(req, resp, lecturer);
-        } else if ("/lecturer/request-leave".equals(path)) {
-            req.setCharacterEncoding("UTF-8");
-            String schedIdStr = req.getParameter("scheduleId");
-            String leaveDateStr = req.getParameter("leaveDate");
-            String reason = req.getParameter("reason");
-            String leaveType = req.getParameter("leaveType");
-            String substituteLecturerId = req.getParameter("substituteLecturerId");
-            String makeupDateStr = req.getParameter("makeupDate");
-            String makeupStartPeriodStr = req.getParameter("makeupStartPeriod");
-            String makeupPeriodCountStr = req.getParameter("makeupPeriodCount");
-            String makeupRoom = req.getParameter("makeupRoom");
-
-            LeaveRequest lr = new LeaveRequest();
-            lr.setLecturerId(lecturer.getLecturerId());
-            if (schedIdStr != null && !schedIdStr.trim().isEmpty()) {
-                try {
-                    lr.setScheduleId(Integer.parseInt(schedIdStr.trim()));
-                } catch (Exception ignored) {}
-            }
-            if (leaveDateStr != null && !leaveDateStr.trim().isEmpty()) {
-                try {
-                    lr.setLeaveDate(java.sql.Date.valueOf(leaveDateStr.trim()));
-                } catch (Exception ignored) {}
-            }
-            lr.setReason(reason != null ? reason.trim() : "");
-            lr.setLeaveType(leaveType != null && !leaveType.trim().isEmpty() ? leaveType.trim() : "DAY_BU");
-
-            if ("DAY_THAY".equalsIgnoreCase(lr.getLeaveType())) {
-                lr.setSubstituteLecturerId(substituteLecturerId != null && !substituteLecturerId.trim().isEmpty() ? substituteLecturerId.trim() : null);
-            } else if ("DAY_BU".equalsIgnoreCase(lr.getLeaveType())) {
-                if (makeupDateStr != null && !makeupDateStr.trim().isEmpty()) {
-                    try {
-                        java.sql.Date mDate = java.sql.Date.valueOf(makeupDateStr.trim());
-                        lr.setMakeupDate(mDate);
-                        java.util.Calendar cal = java.util.Calendar.getInstance();
-                        cal.setTime(mDate);
-                        int dow = cal.get(java.util.Calendar.DAY_OF_WEEK);
-                        int thuBu = (dow == java.util.Calendar.SUNDAY) ? 8 : dow;
-                        lr.setMakeupDayOfWeek(thuBu);
-                    } catch (Exception ignored) {}
-                }
-                if (makeupStartPeriodStr != null && !makeupStartPeriodStr.trim().isEmpty()) {
-                    try {
-                        lr.setMakeupStartPeriod(Integer.parseInt(makeupStartPeriodStr.trim()));
-                    } catch (Exception ignored) {}
-                }
-                if (makeupPeriodCountStr != null && !makeupPeriodCountStr.trim().isEmpty()) {
-                    try {
-                        lr.setMakeupPeriodCount(Integer.parseInt(makeupPeriodCountStr.trim()));
-                    } catch (Exception ignored) {}
-                }
-                lr.setMakeupRoom(makeupRoom != null && !makeupRoom.trim().isEmpty() ? makeupRoom.trim() : null);
-            }
-
-            leaveRequestDAO.insertLeaveRequest(lr);
-            resp.sendRedirect(req.getContextPath() + "/lecturer/schedule?msg=leave_submitted");
         } else {
             doGet(req, resp);
         }
-    }
-
-    private void handleSchedule(HttpServletRequest req, HttpServletResponse resp, Lecturer lecturer)
-            throws ServletException, IOException {
-        String semesterId = req.getParameter("semesterId");
-        List<Semester> semesters = semesterDAO.getAllSemesters();
-        List<Schedule> schedules = scheduleDAO.getSchedulesByLecturer(lecturer.getLecturerId(), semesterId);
-        List<LeaveRequest> myLeaveRequests = leaveRequestDAO.getLeaveRequestsByLecturer(lecturer.getLecturerId());
-        List<Lecturer> lecturers = lecturerDAO.getAllLecturers();
-
-        req.setAttribute("semesters", semesters);
-        req.setAttribute("schedules", schedules);
-        req.setAttribute("myLeaveRequests", myLeaveRequests);
-        req.setAttribute("lecturers", lecturers);
-        req.setAttribute("selectedSemester", semesterId);
-        req.getRequestDispatcher("/WEB-INF/views/lecturer/schedule.jsp").forward(req, resp);
     }
 
     private void handleClasses(HttpServletRequest req, HttpServletResponse resp, Lecturer lecturer)

@@ -62,7 +62,6 @@
     <servlet-mapping>
         <servlet-name>GradeApprovalServlet</servlet-name>
         <url-pattern>/admin/grade-approval</url-pattern>
-        <url-pattern>/admin/appeals</url-pattern>
     </servlet-mapping>
 
     <servlet>
@@ -115,15 +114,6 @@
     <servlet-mapping>
         <servlet-name>FacultyGradeServlet</servlet-name>
         <url-pattern>/admin/faculty-grades</url-pattern>
-    </servlet-mapping>
-
-    <servlet>
-        <servlet-name>AdminScheduleServlet</servlet-name>
-        <servlet-class>vn.edu.utc.grade.controller.admin.AdminScheduleServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>AdminScheduleServlet</servlet-name>
-        <url-pattern>/admin/schedules</url-pattern>
     </servlet-mapping>
 
     <!-- Lecturer Servlet -->

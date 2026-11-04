@@ -12,7 +12,7 @@
         <h1 class="text-xl font-bold text-slate-800 flex items-center">
             <i class="fa-solid fa-clock-rotate-left text-rose-600 mr-2.5"></i>Nhật Ký Biến Động Điểm (Audit Log)
         </h1>
-        <p class="text-xs text-slate-500 mt-1">Lưu vết toàn bộ thao tác điều chỉnh điểm sau khi công bố hoặc phúc khảo nhằm đảm bảo tính minh bạch tuyệt đối</p>
+        <p class="text-xs text-slate-500 mt-1">Lưu vết toàn bộ thao tác điều chỉnh điểm sau khi công bố nhằm đảm bảo tính minh bạch tuyệt đối</p>
     </div>
 
     <!-- Logs Table -->

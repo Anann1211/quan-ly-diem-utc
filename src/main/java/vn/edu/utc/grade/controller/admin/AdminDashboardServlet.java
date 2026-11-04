@@ -8,11 +8,8 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import vn.edu.utc.grade.dao.academic.LeaveRequestDAO;
-import vn.edu.utc.grade.dao.grading.AppealDAO;
 import vn.edu.utc.grade.dao.grading.StatisticsDAO;
 import vn.edu.utc.grade.model.account.Student;
-import vn.edu.utc.grade.model.grading.Appeal;
 
 /**
  * Điều hướng Bảng điều khiển (Dashboard) và Thống kê tổng quan đào tạo UTC
@@ -24,14 +21,10 @@ import vn.edu.utc.grade.model.grading.Appeal;
 public class AdminDashboardServlet extends HttpServlet {
 
     private StatisticsDAO statisticsDAO;
-    private AppealDAO appealDAO;
-    private LeaveRequestDAO leaveRequestDAO;
 
     @Override
     public void init() throws ServletException {
         statisticsDAO = new StatisticsDAO();
-        appealDAO = new AppealDAO();
-        leaveRequestDAO = new LeaveRequestDAO();
     }
 
     @Override
@@ -49,18 +42,10 @@ public class AdminDashboardServlet extends HttpServlet {
         Map<String, Integer> summary = statisticsDAO.getDashboardSummary();
         Map<String, Integer> dist = statisticsDAO.getOverallGradeDistribution();
         List<Student> topStudents = statisticsDAO.getTopStudents(5);
-        List<Appeal> recentAppeals = appealDAO.getAllAppeals();
-        if (recentAppeals.size() > 5) {
-            recentAppeals = recentAppeals.subList(0, 5);
-        }
-
-        int pendingLeavesCount = leaveRequestDAO.countPendingLeaveRequests();
 
         req.setAttribute("summary", summary);
         req.setAttribute("gradeDist", dist);
         req.setAttribute("topStudents", topStudents);
-        req.setAttribute("recentAppeals", recentAppeals);
-        req.setAttribute("pendingLeavesCount", pendingLeavesCount);
         req.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(req, resp);
     }
 
