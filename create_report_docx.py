@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Kịch bản Python tạo Báo cáo Bài tập lớn: HỌC PHẦN CÔNG NGHỆ JAVA
-Đề tài: Hệ thống Quản lý điểm Sinh viên theo học chế tín chỉ (UTC)
-Định dạng: Microsoft Word (.docx) chuyên nghiệp, chuẩn mực học thuật ĐH GTVT
+Full report generator script for Bao_Cao_Bai_Tap_Nhom_Quan_Ly_Diem_UTC.docx
 """
 
 import os
 import sys
 import docx
-from docx import Document
 from docx.shared import Inches, Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
@@ -17,16 +14,27 @@ from docx.oxml.ns import nsdecls, qn
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-def set_cell_background(cell, fill_hex):
-    """Thiết lập màu nền cho ô bảng."""
-    tc_pr = cell._tc.get_or_add_tcPr()
-    shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_hex}"/>')
-    tc_pr.append(shd)
+NAVY = RGBColor(0, 51, 102)        # #003366 Academic UTC Navy
+DARK_NAVY = RGBColor(0, 34, 68)   # #002244
+RED_ACCENT = RGBColor(180, 20, 20)# Crimson Red
+DARK_GRAY = RGBColor(40, 40, 40)   # #282828 Body text
+BORDER_GRAY = "D0D7DE"
+LIGHT_BLUE_BG = "F0F4F8"
+LIGHT_GRAY_BG = "F8F9FA"
+HEADER_BG = "003366"
+ZEBRA_BG = "F8FAFC"
+WHITE_BG = "FFFFFF"
 
-def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
-    """Thiết lập padding trong cho ô bảng (đơn vị dxa: 1 pt = 20 dxa)."""
-    tc_pr = cell._tc.get_or_add_tcPr()
-    tc_mar = parse_xml(f'''
+def set_cell_background(cell, hex_color):
+    tcPr = cell._tc.get_or_add_tcPr()
+    for shd in tcPr.findall(qn('w:shd')):
+        tcPr.remove(shd)
+    shading = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{hex_color}"/>')
+    tcPr.append(shading)
+
+def set_cell_margins(cell, top=120, bottom=120, left=180, right=180):
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcMar = parse_xml(f'''
         <w:tcMar {nsdecls("w")}>
             <w:top w:w="{top}" w:type="dxa"/>
             <w:bottom w:w="{bottom}" w:type="dxa"/>
@@ -34,580 +42,533 @@ def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
             <w:right w:w="{right}" w:type="dxa"/>
         </w:tcMar>
     ''')
-    tc_pr.append(tc_mar)
+    tcPr.append(tcMar)
 
-def set_table_borders(table, color="CCCCCC", sz="4", val="single"):
-    """Thiết lập đường viền thanh mảnh, trang nhã cho toàn bộ bảng."""
-    tbl_pr = table._tbl.tblPr
-    borders = parse_xml(f'''
-        <w:tblBorders {nsdecls("w")}>
-            <w:top w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>
-            <w:left w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>
-            <w:bottom w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>
-            <w:right w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>
-            <w:insideH w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>
-            <w:insideV w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>
-        </w:tblBorders>
-    ''')
-    tbl_pr.append(borders)
-
-def add_callout(doc, text, title="LƯU Ý QUAN TRỌNG:"):
-    """Tạo hộp thông tin Callout viền xanh navy nổi bật phong cách chuyên nghiệp."""
-    tbl = doc.add_table(rows=1, cols=1)
-    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    tbl.autofit = False
-    tbl.columns[0].width = Cm(16.0)
-    
-    cell = tbl.cell(0, 0)
-    set_cell_background(cell, "F0F4F8")
-    set_cell_margins(cell, top=120, bottom=120, left=200, right=180)
-    
-    tc_pr = cell._tc.get_or_add_tcPr()
-    borders = parse_xml(f'''
+def set_callout_border(cell, border_color="003366", border_size="36"):
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcBorders = parse_xml(f'''
         <w:tcBorders {nsdecls("w")}>
-            <w:top w:val="none"/>
-            <w:left w:val="single" w:sz="24" w:space="0" w:color="003366"/>
-            <w:bottom w:val="none"/>
-            <w:right w:val="none"/>
+            <w:top w:val="single" w:sz="4" w:space="0" w:color="D0D7DE"/>
+            <w:left w:val="single" w:sz="{border_size}" w:space="0" w:color="{border_color}"/>
+            <w:bottom w:val="single" w:sz="4" w:space="0" w:color="D0D7DE"/>
+            <w:right w:val="single" w:sz="4" w:space="0" w:color="D0D7DE"/>
         </w:tcBorders>
     ''')
-    tc_pr.append(borders)
-    
+    tcPr.append(tcBorders)
+
+def set_code_border(cell):
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcBorders = parse_xml(f'''
+        <w:tcBorders {nsdecls("w")}>
+            <w:top w:val="single" w:sz="6" w:space="0" w:color="D0D7DE"/>
+            <w:left w:val="single" w:sz="6" w:space="0" w:color="D0D7DE"/>
+            <w:bottom w:val="single" w:sz="6" w:space="0" w:color="D0D7DE"/>
+            <w:right w:val="single" w:sz="6" w:space="0" w:color="D0D7DE"/>
+        </w:tcBorders>
+    ''')
+    tcPr.append(tcBorders)
+
+def add_callout(doc, title, paragraphs_text):
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell = tbl.cell(0, 0)
+    set_cell_background(cell, LIGHT_BLUE_BG)
+    set_callout_border(cell, "003366", "36")
+    set_cell_margins(cell, top=140, bottom=140, left=220, right=200)
+
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(2)
+    p.paragraph_format.space_after = Pt(4)
+    run_icon = p.add_run(f"📌 {title}")
+    run_icon.bold = True
+    run_icon.font.size = Pt(11.5)
+    run_icon.font.name = "Times New Roman"
+    run_icon.font.color.rgb = NAVY
+
+    for item in paragraphs_text:
+        p2 = cell.add_paragraph()
+        p2.paragraph_format.space_before = Pt(1)
+        p2.paragraph_format.space_after = Pt(3)
+        p2.paragraph_format.line_spacing = 1.2
+        r = p2.add_run(item)
+        r.font.size = Pt(10.5)
+        r.font.name = "Times New Roman"
+        r.font.color.rgb = DARK_GRAY
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
+def add_code_block(doc, code_str, caption=None):
+    if caption:
+        p_cap = doc.add_paragraph()
+        p_cap.paragraph_format.space_before = Pt(6)
+        p_cap.paragraph_format.space_after = Pt(3)
+        p_cap.paragraph_format.keep_with_next = True
+        r_cap = p_cap.add_run(f"Đoạn mã: {caption}")
+        r_cap.font.name = "Times New Roman"
+        r_cap.font.size = Pt(10.5)
+        r_cap.italic = True
+        r_cap.bold = True
+        r_cap.font.color.rgb = NAVY
+
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell = tbl.cell(0, 0)
+    set_cell_background(cell, LIGHT_GRAY_BG)
+    set_code_border(cell)
+    set_cell_margins(cell, top=120, bottom=120, left=180, right=160)
+
     p = cell.paragraphs[0]
     p.paragraph_format.space_before = Pt(2)
     p.paragraph_format.space_after = Pt(2)
     p.paragraph_format.line_spacing = 1.15
-    run_title = p.add_run(f"📌 {title} ")
-    run_title.font.name = "Times New Roman"
-    run_title.font.size = Pt(11.5)
-    run_title.font.bold = True
-    run_title.font.color.rgb = RGBColor(0, 51, 102)
-    
-    run_text = p.add_run(text)
-    run_text.font.name = "Times New Roman"
-    run_text.font.size = Pt(11)
-    run_text.font.italic = True
-    run_text.font.color.rgb = RGBColor(50, 50, 50)
-    
-    doc.add_paragraph()
+    run = p.add_run(code_str.strip())
+    run.font.name = "Consolas"
+    run.font.size = Pt(9.0)
+    run.font.color.rgb = RGBColor(30, 30, 30)
 
-def add_code_block(doc, code_str, caption=None):
-    """Tạo khối mã nguồn với font Consolas và nền xám nhạt có viền trái."""
-    if caption:
-        p_cap = doc.add_paragraph()
-        p_cap.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p_cap.paragraph_format.space_before = Pt(6)
-        p_cap.paragraph_format.space_after = Pt(2)
-        run_cap = p_cap.add_run(caption)
-        run_cap.font.name = "Times New Roman"
-        run_cap.font.size = Pt(10.5)
-        run_cap.font.bold = True
-        run_cap.font.italic = True
-        run_cap.font.color.rgb = RGBColor(0, 51, 102)
+    p_post = doc.add_paragraph()
+    p_post.paragraph_format.space_before = Pt(0)
+    p_post.paragraph_format.space_after = Pt(4)
+
+def add_diagram_box(doc, ascii_str, caption):
+    p_cap = doc.add_paragraph()
+    p_cap.paragraph_format.space_before = Pt(8)
+    p_cap.paragraph_format.space_after = Pt(3)
+    p_cap.paragraph_format.keep_with_next = True
+    r_cap = p_cap.add_run(f"Sơ đồ minh họa: {caption}")
+    r_cap.font.name = "Times New Roman"
+    r_cap.font.size = Pt(10.5)
+    r_cap.italic = True
+    r_cap.bold = True
+    r_cap.font.color.rgb = NAVY
 
     tbl = doc.add_table(rows=1, cols=1)
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    tbl.autofit = False
-    tbl.columns[0].width = Cm(16.0)
-    
     cell = tbl.cell(0, 0)
-    set_cell_background(cell, "F8F9FA")
-    set_cell_margins(cell, top=100, bottom=100, left=160, right=140)
-    
-    tc_pr = cell._tc.get_or_add_tcPr()
-    borders = parse_xml(f'''
-        <w:tcBorders {nsdecls("w")}>
-            <w:top w:val="single" w:sz="6" w:space="0" w:color="D1D5DB"/>
-            <w:left w:val="single" w:sz="18" w:space="0" w:color="4B5563"/>
-            <w:bottom w:val="single" w:sz="6" w:space="0" w:color="D1D5DB"/>
-            <w:right w:val="single" w:sz="6" w:space="0" w:color="D1D5DB"/>
-        </w:tcBorders>
-    ''')
-    tc_pr.append(borders)
-    
+    set_cell_background(cell, "F4F6F9")
+    set_code_border(cell)
+    set_cell_margins(cell, top=130, bottom=130, left=180, right=160)
+
     p = cell.paragraphs[0]
-    p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after = Pt(0)
-    p.paragraph_format.line_spacing = 1.05
-    run = p.add_run(code_str)
-    run.font.name = "Consolas"
-    run.font.size = Pt(9.5)
-    run.font.color.rgb = RGBColor(30, 41, 59)
-    
-    p_sp = doc.add_paragraph()
-    p_sp.paragraph_format.space_before = Pt(0)
-    p_sp.paragraph_format.space_after = Pt(4)
-
-def format_table(table, col_widths, headers, data, header_bg="003366", header_color="FFFFFF"):
-    """Định dạng bảng biểu chuẩn: header xanh navy, sọc xen kẽ, căn chỉnh lề."""
-    set_table_borders(table)
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    
-    # Headers
-    hdr_cells = table.rows[0].cells
-    for i, title in enumerate(headers):
-        hdr_cells[i].text = title
-        set_cell_background(hdr_cells[i], header_bg)
-        set_cell_margins(hdr_cells[i], top=120, bottom=120, left=140, right=140)
-        p = hdr_cells[i].paragraphs[0]
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_before = Pt(0)
-        p.paragraph_format.space_after = Pt(0)
-        for r in p.runs:
-            r.font.name = "Times New Roman"
-            r.font.size = Pt(11)
-            r.font.bold = True
-            r.font.color.rgb = RGBColor(255, 255, 255) if header_color == "FFFFFF" else RGBColor(0, 0, 0)
-            
-    # Rows
-    for row_idx, row_data in enumerate(data):
-        row_cells = table.rows[row_idx + 1].cells
-        bg_col = "F8FAFC" if row_idx % 2 == 1 else "FFFFFF"
-        for col_idx, cell_value in enumerate(row_data):
-            row_cells[col_idx].text = str(cell_value)
-            set_cell_background(row_cells[col_idx], bg_col)
-            set_cell_margins(row_cells[col_idx], top=80, bottom=80, left=120, right=120)
-            p = row_cells[col_idx].paragraphs[0]
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
-            if col_idx in [0, 1, 3] and len(headers) >= 4:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            else:
-                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            for r in p.runs:
-                r.font.name = "Times New Roman"
-                r.font.size = Pt(10.5)
-                
-    # Column widths
-    for row in table.rows:
-        for idx, width in enumerate(col_widths):
-            row.cells[idx].width = width
-
-def build_report():
-    doc = Document()
-    
-    # ---------------- CẤU HÌNH TRANG IN (CHUẨN VIỆT NAM) ----------------
-    # A4: 21.0 x 29.7 cm - Lề: Trái 3cm, Phải 2cm, Trên 2cm, Dưới 2cm
-    for section in doc.sections:
-        section.page_width = Cm(21.0)
-        section.page_height = Cm(29.7)
-        section.top_margin = Cm(2.0)
-        section.bottom_margin = Cm(2.0)
-        section.left_margin = Cm(3.0)
-        section.right_margin = Cm(2.0)
-        
-    print("Page margins and size configured.")
-    
-    # =========================================================================
-    # TRANG BÌA (COVER PAGE)
-    # =========================================================================
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_before = Pt(2)
     p.paragraph_format.space_after = Pt(2)
-    r = p.add_run("BỘ GIÁO DỤC VÀ ĐÀO TẠO\nTRƯỜNG ĐẠI HỌC GIAO THÔNG VẬN TẢI")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-    
+    p.paragraph_format.line_spacing = 1.05
+    run = p.add_run(ascii_str.strip())
+    run.font.name = "Consolas"
+    run.font.size = Pt(8.0)
+    run.font.color.rgb = RGBColor(20, 30, 45)
+
+    p_post = doc.add_paragraph()
+    p_post.paragraph_format.space_before = Pt(0)
+    p_post.paragraph_format.space_after = Pt(4)
+
+def format_table(table, col_widths, col_alignments):
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tblPr = table._tbl.tblPr
+    tblBorders = parse_xml(f'''
+        <w:tblBorders {nsdecls("w")}>
+            <w:top w:val="single" w:sz="6" w:space="0" w:color="{BORDER_GRAY}"/>
+            <w:left w:val="none"/>
+            <w:bottom w:val="single" w:sz="8" w:space="0" w:color="003366"/>
+            <w:right w:val="none"/>
+            <w:insideH w:val="single" w:sz="4" w:space="0" w:color="{BORDER_GRAY}"/>
+            <w:insideV w:val="none"/>
+        </w:tblBorders>
+    ''')
+    tblPr.append(tblBorders)
+
+    for i, row in enumerate(table.rows):
+        trPr = row._tr.get_or_add_trPr()
+        trPr.append(parse_xml(f'<w:cantSplit {nsdecls("w")}/>'))
+        is_header = (i == 0)
+        if is_header:
+            trPr.append(parse_xml(f'<w:tblHeader {nsdecls("w")}/>'))
+
+        bg_color = HEADER_BG if is_header else (ZEBRA_BG if i % 2 == 1 else WHITE_BG)
+
+        for j, cell in enumerate(row.cells):
+            cell.width = col_widths[j]
+            set_cell_background(cell, bg_color)
+            set_cell_margins(cell, top=80 if not is_header else 110,
+                                   bottom=80 if not is_header else 110,
+                                   left=110, right=110)
+            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
+            for p in cell.paragraphs:
+                p.alignment = col_alignments[j]
+                p.paragraph_format.space_before = Pt(1)
+                p.paragraph_format.space_after = Pt(1)
+                p.paragraph_format.line_spacing = 1.15
+                for run in p.runs:
+                    run.font.name = "Times New Roman"
+                    if is_header:
+                        run.font.size = Pt(10)
+                        run.bold = True
+                        run.font.color.rgb = RGBColor(255, 255, 255)
+                    else:
+                        run.font.size = Pt(9.5)
+                        run.font.color.rgb = DARK_GRAY
+
+def add_heading_1(doc, text):
     p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(18)
+    p.paragraph_format.space_after = Pt(6)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run(text)
+    run.font.name = "Times New Roman"
+    run.font.size = Pt(14)
+    run.bold = True
+    run.font.color.rgb = NAVY
+    return p
+
+def add_heading_2(doc, text):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(12)
+    p.paragraph_format.space_after = Pt(4)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run(text)
+    run.font.name = "Times New Roman"
+    run.font.size = Pt(13)
+    run.bold = True
+    run.font.color.rgb = NAVY
+    return p
+
+def add_heading_3(doc, text):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(8)
+    p.paragraph_format.space_after = Pt(2)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run(text)
+    run.font.name = "Times New Roman"
+    run.font.size = Pt(12)
+    run.bold = True
+    run.italic = True
+    run.font.color.rgb = NAVY
+    return p
+
+def add_p(doc, text, bold_prefix=None, italic=False, bullet=False):
+    p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after = Pt(24)
-    r = p.add_run("KHOA CÔNG NGHỆ THÔNG TIN\nBỘ MÔN CÔNG NGHỆ PHẦN MỀM")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(12)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(70, 70, 70)
+    p.paragraph_format.space_after = Pt(4)
+    p.paragraph_format.line_spacing = 1.25
+    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_before = Pt(10)
-    p.paragraph_format.space_after = Pt(20)
-    r = p.add_run("------------------ *** ------------------")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(11)
-    r.font.color.rgb = RGBColor(150, 150, 150)
+    if bullet:
+        p.paragraph_format.left_indent = Cm(0.6)
+        run_bullet = p.add_run("•  ")
+        run_bullet.font.name = "Times New Roman"
+        run_bullet.font.size = Pt(12)
+        run_bullet.font.color.rgb = NAVY
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_before = Pt(16)
-    p.paragraph_format.space_after = Pt(12)
-    r = p.add_run("BÁO CÁO BÀI TẬP LỚN\nHỌC PHẦN: CÔNG NGHỆ JAVA")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(15)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(194, 65, 12) # Cam đất nổi bật
+    if bold_prefix:
+        r_pre = p.add_run(bold_prefix)
+        r_pre.font.name = "Times New Roman"
+        r_pre.font.size = Pt(12)
+        r_pre.bold = True
+        r_pre.font.color.rgb = DARK_GRAY
 
-    p_title = doc.add_paragraph()
-    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_title.paragraph_format.space_before = Pt(20)
-    p_title.paragraph_format.space_after = Pt(24)
-    p_title.paragraph_format.line_spacing = 1.3
-    r = p_title.add_run("ĐỀ TÀI:\n\"XÂY DỰNG HỆ THỐNG QUẢN LÝ ĐIỂM SINH VIÊN\nTHEO HỌC CHẾ TÍN CHỈ SỬ DỤNG JAVA WEB\n(SERVLET / JSP / JDBC) VÀ ORACLE DATABASE 23ai\"")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(16)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    run = p.add_run(text)
+    run.font.name = "Times New Roman"
+    run.font.size = Pt(12)
+    run.italic = italic
+    run.font.color.rgb = DARK_GRAY
+    return p
 
-    p_info = doc.add_paragraph()
-    p_info.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    p_info.paragraph_format.left_indent = Cm(3.5)
-    p_info.paragraph_format.space_before = Pt(36)
-    p_info.paragraph_format.space_after = Pt(30)
-    p_info.paragraph_format.line_spacing = 1.3
+print("Loaded module successfully.")
+
+def build_cover_and_intro(doc):
+    # Setup page margins
+    section = doc.sections[0]
+    section.page_width = Cm(21.0)
+    section.page_height = Cm(29.7)
+    section.top_margin = Cm(2.0)
+    section.bottom_margin = Cm(2.0)
+    section.left_margin = Cm(3.0)
+    section.right_margin = Cm(2.0)
+
+    # 1. TRANG BÌA
+    p1 = doc.add_paragraph()
+    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p1.paragraph_format.space_before = Pt(0)
+    p1.paragraph_format.space_after = Pt(2)
+    r1 = p1.add_run("BỘ GIÁO DỤC VÀ ĐÀO TẠO\nTRƯỜNG ĐẠI HỌC GIAO THÔNG VẬN TẢI")
+    r1.font.name = "Times New Roman"
+    r1.font.size = Pt(13)
+    r1.bold = True
+    r1.font.color.rgb = DARK_NAVY
+
+    p2 = doc.add_paragraph()
+    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p2.paragraph_format.space_before = Pt(2)
+    p2.paragraph_format.space_after = Pt(12)
+    r2 = p2.add_run("KHOA CÔNG NGHỆ THÔNG TIN - BỘ MÔN CÔNG NGHỆ PHẦN MỀM\n-------------------***-------------------")
+    r2.font.name = "Times New Roman"
+    r2.font.size = Pt(12)
+    r2.bold = True
+    r2.font.color.rgb = NAVY
+
+    # UTC Logo
+    logo_path = "src/main/webapp/assets/images/utc-logo.png"
+    if os.path.exists(logo_path):
+        p_logo = doc.add_paragraph()
+        p_logo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_logo.paragraph_format.space_before = Pt(6)
+        p_logo.paragraph_format.space_after = Pt(12)
+        p_logo.add_run().add_picture(logo_path, width=Inches(1.8))
+
+    p3 = doc.add_paragraph()
+    p3.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p3.paragraph_format.space_before = Pt(8)
+    p3.paragraph_format.space_after = Pt(6)
+    r3 = p3.add_run("BÁO CÁO BÀI TẬP NHÓM")
+    r3.font.name = "Times New Roman"
+    r3.font.size = Pt(20)
+    r3.bold = True
+    r3.font.color.rgb = RED_ACCENT
+
+    p4 = doc.add_paragraph()
+    p4.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p4.paragraph_format.space_before = Pt(0)
+    p4.paragraph_format.space_after = Pt(10)
+    r4 = p4.add_run("HỌC PHẦN: CÔNG NGHỆ JAVA")
+    r4.font.name = "Times New Roman"
+    r4.font.size = Pt(15)
+    r4.bold = True
+    r4.font.color.rgb = NAVY
+
+    p5 = doc.add_paragraph()
+    p5.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p5.paragraph_format.space_before = Pt(6)
+    p5.paragraph_format.space_after = Pt(18)
+    r5 = p5.add_run("ĐỀ TÀI:\nXÂY DỰNG HỆ THỐNG QUẢN LÝ ĐIỂM SINH VIÊN THEO HỌC CHẾ TÍN CHỈ\nTRƯỜNG ĐẠI HỌC GIAO THÔNG VẬN TẢI (UTC)")
+    r5.font.name = "Times New Roman"
+    r5.font.size = Pt(15)
+    r5.bold = True
+    r5.font.color.rgb = DARK_NAVY
+
+    # Metadata block
+    p_meta = doc.add_paragraph()
+    p_meta.paragraph_format.left_indent = Cm(3.0)
+    p_meta.paragraph_format.space_before = Pt(10)
+    p_meta.paragraph_format.space_after = Pt(12)
+    p_meta.paragraph_format.line_spacing = 1.3
     
-    info_lines = [
-        ("Giảng viên hướng dẫn:", " TS. Giảng viên phụ trách học phần Công nghệ Java"),
-        ("Nhóm sinh viên thực hiện:", " Nhóm thực hiện đề tài UTC"),
-        ("Chuyên ngành:", " Công nghệ thông tin & Kỹ thuật phần mềm"),
-        ("Khóa học:", " Khóa 62 / Khóa 63"),
-        ("Hệ đào tạo:", " Chính quy theo học chế tín chỉ")
+    runs_meta = [
+        ("Giảng viên hướng dẫn: ", True), ("TS. Nguyễn Văn Hướng\n", False),
+        ("Lớp học phần:          ", True), ("Công nghệ Java - Nhóm 02\n", False),
+        ("Nhóm sinh viên:        ", True), ("Nhóm 05\n", False),
+        ("Lớp chuyên ngành:      ", True), ("Công nghệ Thông tin 1 - K62\n", False),
+        ("Cơ sở đào tạo:         ", True), ("Trường Đại học Giao thông Vận tải (Hà Nội)\n", False),
     ]
-    for lbl, val in info_lines:
-        r_lbl = p_info.add_run(lbl)
-        r_lbl.font.name = "Times New Roman"
-        r_lbl.font.size = Pt(12)
-        r_lbl.font.bold = True
-        r_val = p_info.add_run(val + "\n")
-        r_val.font.name = "Times New Roman"
-        r_val.font.size = Pt(12)
+    for m_text, m_bold in runs_meta:
+        rm = p_meta.add_run(m_text)
+        rm.font.name = "Times New Roman"
+        rm.font.size = Pt(12)
+        rm.bold = m_bold
+        rm.font.color.rgb = DARK_GRAY
 
-    p_bot = doc.add_paragraph()
-    p_bot.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_bot.paragraph_format.space_before = Pt(40)
-    p_bot.paragraph_format.space_after = Pt(0)
-    r = p_bot.add_run("HÀ NỘI - 2026")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(12)
-    r.font.bold = True
+    # Footer date
+    p_foot = doc.add_paragraph()
+    p_foot.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_foot.paragraph_format.space_before = Pt(18)
+    p_foot.paragraph_format.space_after = Pt(8)
+    r_foot = p_foot.add_run("HÀ NỘI - NĂM 2026")
+    r_foot.font.name = "Times New Roman"
+    r_foot.font.size = Pt(12.5)
+    r_foot.bold = True
+    r_foot.font.color.rgb = NAVY
 
+    # Bảng phân công nhiệm vụ thành viên
+    p_team_title = doc.add_paragraph()
+    p_team_title.paragraph_format.space_before = Pt(12)
+    p_team_title.paragraph_format.space_after = Pt(4)
+    r_tt = p_team_title.add_run("BẢNG PHÂN CÔNG NHIỆM VỤ THÀNH VIÊN TRONG NHÓM")
+    r_tt.font.name = "Times New Roman"
+    r_tt.font.size = Pt(12)
+    r_tt.bold = True
+    r_tt.font.color.rgb = NAVY
+
+    team_data = [
+        ["STT", "Họ và tên", "Mã sinh viên", "Nhiệm vụ phân công", "Đánh giá"],
+        ["1", "Nguyễn Hoàng Nam", "211200001", "Trưởng nhóm, Thiết kế kiến trúc MVC, CSDL Oracle 23ai, DBConnection, GradeDAO", "100% (Hoàn thành Xuất sắc)"],
+        ["2", "Trần Thị Mai", "211200002", "Xây dựng các Servlet Controller, Bộ lọc phân quyền AuthFilter (RBAC), Quản lý tài khoản", "100% (Hoàn thành Xuất sắc)"],
+        ["3", "Lê Văn Đức", "211200003", "Phát triển các DAO, PreparedStatement, SQL Transaction, Nhật ký sửa điểm Audit Log", "100% (Hoàn thành Xuất sắc)"],
+        ["4", "Phạm Minh Tuấn", "211200004", "Thiết kế giao diện JSP/JSTL, Tailwind/Bootstrap UI, Xử lý Apache POI Excel, Viết Test Cases", "100% (Hoàn thành Xuất sắc)"]
+    ]
+    t_team = doc.add_table(rows=len(team_data), cols=5)
+    for r_i, r_data in enumerate(team_data):
+        for c_i, c_val in enumerate(r_data):
+            t_team.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_team, [Cm(1.2), Cm(3.8), Cm(2.4), Cm(6.2), Cm(2.4)],
+                 [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER])
+
+    # End of Page 1 -> Page Break
     doc.add_page_break()
 
-    # =========================================================================
-    # BẢNG PHÂN CÔNG NHIỆM VỤ & MỤC LỤC
-    # =========================================================================
-    h1 = doc.add_paragraph()
-    h1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    h1.paragraph_format.space_before = Pt(6)
-    h1.paragraph_format.space_after = Pt(12)
-    r = h1.add_run("BẢNG PHÂN CÔNG NHIỆM VỤ THỰC HIỆN ĐỀ TÀI")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(14)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    # 2. MỤC LỤC
+    p_toc = doc.add_paragraph()
+    p_toc.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_toc.paragraph_format.space_before = Pt(6)
+    p_toc.paragraph_format.space_after = Pt(14)
+    r_toc = p_toc.add_run("MỤC LỤC TỔNG THỂ BÁO CÁO")
+    r_toc.font.name = "Times New Roman"
+    r_toc.font.size = Pt(16)
+    r_toc.bold = True
+    r_toc.font.color.rgb = NAVY
 
-    p_desc = doc.add_paragraph()
-    p_desc.paragraph_format.space_after = Pt(8)
-    p_desc.paragraph_format.line_spacing = 1.25
-    r = p_desc.add_run("Nhóm thực hiện đề tài gồm các thành viên với sự phân công trách nhiệm rõ ràng, phối hợp chặt chẽ theo từng tầng kiến trúc của hệ thống:")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(12)
-
-    table_members = doc.add_table(rows=5, cols=5)
-    mem_headers = ["STT", "Họ và tên", "Mã sinh viên", "Nhiệm vụ phụ trách", "Mức độ hoàn thành"]
-    mem_widths = [Cm(1.2), Cm(3.8), Cm(2.5), Cm(6.5), Cm(2.0)]
-    mem_data = [
-        [1, "Nguyễn Văn An (Trưởng nhóm)", "211200001", "Kiến trúc hệ thống Java Web MVC, Phân quyền RBAC (AuthFilter), Bộ lọc UTF-8, Backend Controller, Quản lý Session", "100% (Xuất sắc)"],
-        [2, "Trần Thị Bình", "211200002", "Thiết kế CSDL Oracle 23ai (11 bảng chuẩn hóa 3NF), Ràng buộc CHECK, DDL Script, Tối ưu Index & DAO với JDBC PreparedStatement", "100% (Xuất sắc)"],
-        [3, "Lê Hoàng Cường", "211200003", "Nghiệp vụ tính điểm UTC (GradeCalculator: trọng số động, điểm liệt thi, thang điểm chữ, thang 4, GPA/CPA), Đọc/Xuất file Excel Apache POI", "100% (Xuất sắc)"],
-        [4, "Phạm Minh Đức", "211200004", "Thiết kế giao diện JSP/Tailwind CSS Responsive, View 3 vai trò, Xử lý JavaScript in phiếu điểm A4 chuẩn quy cách UTC", "100% (Xuất sắc)"]
-    ]
-    format_table(table_members, mem_widths, mem_headers, mem_data)
-
-    p_sp = doc.add_paragraph()
-    p_sp.paragraph_format.space_before = Pt(12)
-    p_sp.paragraph_format.space_after = Pt(6)
-
-    h_toc = doc.add_paragraph()
-    h_toc.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    h_toc.paragraph_format.space_before = Pt(8)
-    h_toc.paragraph_format.space_after = Pt(10)
-    r = h_toc.add_run("MỤC LỤC TỔNG THỂ BÁO CÁO")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(14)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-
-    toc_items = [
-        ("PHẦN MỞ ĐẦU: TRANG BÌA & BẢNG PHÂN CÔNG NHIỆM VỤ", "1"),
-        ("CHƯƠNG 1: TỔNG QUAN ĐỀ TÀI VÀ KHẢO SÁT BÀI TOÁN QUẢN LÝ ĐIỂM UTC", "2"),
-        ("   1.1. Đặt vấn đề và tính cấp thiết của đề tài", "2"),
-        ("   1.2. Mục tiêu, phạm vi và mô hình phân quyền người dùng (RBAC)", "2"),
-        ("   1.3. Quy tắc nghiệp vụ tính điểm chuẩn tín chỉ Trường ĐH Giao thông Vận tải", "3"),
-        ("   1.4. Nền tảng Công nghệ Java và môi trường phát triển ứng dụng", "3"),
-        ("CHƯƠNG 2: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG", "4"),
-        ("   2.1. Phân tích yêu cầu chức năng theo 3 tác nhân (RBAC)", "4"),
-        ("   2.2. Biểu đồ Use Case tổng quát của hệ thống", "4"),
-        ("   2.3. Quy trình nghiệp vụ và vòng đời trạng thái bảng điểm học phần", "5"),
-        ("CHƯƠNG 3: THIẾT KẾ CƠ SỞ DỮ LIỆU TRÊN ORACLE DATABASE 23ai", "6"),
-        ("   3.1. Sơ đồ thực thể liên kết (ERD 11 bảng chuẩn hóa dạng 3 - 3NF)", "6"),
-        ("   3.2. Từ điển dữ liệu chi tiết (Data Dictionary)", "7"),
-        ("   3.3. Các kỹ thuật tối ưu hóa và đảm bảo an toàn dữ liệu trên Oracle 23ai", "8"),
-        ("CHƯƠNG 4: KIẾN TRÚC HỆ THỐNG VÀ HIỆN THỰC HÓA MÃ NGUỒN CÔNG NGHỆ JAVA", "9"),
-        ("   4.1. Kiến trúc phân tầng 3-Tier kết hợp mẫu thiết kế MVC trong Java Web", "9"),
-        ("   4.2. Cấu trúc tổ chức thư mục dự án theo chuẩn Apache Maven", "9"),
-        ("   4.3. Hiện thực hóa các thành phần cốt lõi bằng Công nghệ Java", "10"),
-        ("CHƯƠNG 5: KẾT QUẢ THỰC NGHIỆM VÀ ĐÁNH GIÁ HỆ THỐNG", "11"),
-        ("   5.1. Kịch bản cài đặt và khởi chạy hệ thống 1-Click", "11"),
-        ("   5.2. Kết quả thực nghiệm các phân hệ chức năng trên giao diện Web", "11"),
-        ("   5.3. Bảng tài khoản trải nghiệm hệ thống", "12"),
-        ("   5.4. Đánh giá ưu điểm, hạn chế và định hướng phát triển", "12"),
-        ("KẾT LUẬN CHUNG", "13"),
-        ("TÀI LIỆU THAM KHẢO", "14")
+    toc_data = [
+        ["NỘI DUNG BÁO CÁO", "TRANG"],
+        ["PHẦN MỞ ĐẦU: TRANG BÌA & BẢNG PHÂN CÔNG NHIỆM VỤ", "1"],
+        ["MỤC LỤC TỔNG THỂ BÁO CÁO", "2"],
+        ["LỜI NÓI ĐẦU / LỜI CẢM ƠN", "3"],
+        ["CHƯƠNG 1: KHẢO SÁT BÀI TOÁN VÀ PHÂN TÍCH YÊU CẦU", "4"],
+        ["   1.1. Khảo sát hiện trạng và mô tả bài toán quản lý điểm tín chỉ UTC", "4"],
+        ["        1.1.1. Bối cảnh và khó khăn khi quản lý điểm thủ công bằng Excel", "4"],
+        ["        1.1.2. Mục tiêu xây dựng phần mềm Quản lý điểm UTC", "5"],
+        ["        1.1.3. Liệt kê các đối tượng quản lý chính trong hệ thống", "5"],
+        ["   1.2. Phân tích yêu cầu chức năng (Mô tả chi tiết từng Use Case)", "6"],
+        ["        1.2.1. Biểu đồ Use Case tổng quát và phân rã các tác nhân", "6"],
+        ["        1.2.2. Nhóm chức năng Quản lý hệ thống và Xác thực phân quyền", "7"],
+        ["        1.2.3. Nhóm chức năng Quản lý danh mục đào tạo", "7"],
+        ["        1.2.4. Nhóm chức năng Quản lý điểm số và Quy trình xét duyệt điểm", "8"],
+        ["        1.2.5. Nhóm chức năng Tra cứu, Tìm kiếm và Cảnh báo học vụ", "8"],
+        ["   1.3. Phân tích yêu cầu phi chức năng và công nghệ áp dụng", "9"],
+        ["        1.3.1. Yêu cầu tính toàn vẹn dữ liệu và kiểm tra hợp lệ (Validation)", "9"],
+        ["        1.3.2. Xử lý ngoại lệ, An toàn giao dịch SQL và Chống lỗ hổng bảo mật", "10"],
+        ["        1.3.3. Công nghệ sử dụng: Java Web MVC, Oracle DB 23ai, Apache POI", "10"],
+        ["CHƯƠNG 2: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG", "11"],
+        ["   2.1. Thiết kế cơ sở dữ liệu (Database Design)", "11"],
+        ["        2.1.1. Lược đồ quan hệ thực thể (ERD) hệ thống Oracle Database 23ai", "11"],
+        ["        2.1.2. Đặc tả từ điển dữ liệu chi tiết các bảng trong CSDL", "12"],
+        ["   2.2. Thiết kế kiến trúc phần mềm (Software Architecture)", "15"],
+        ["        2.2.1. Áp dụng mô hình kiến trúc MVC trên nền Java Web Servlet/JSP", "15"],
+        ["        2.2.2. Sơ đồ chu trình xử lý Request/Response và Nhiệm vụ các Package", "16"],
+        ["CHƯƠNG 3: TRIỂN KHAI XÂY DỰNG CHƯƠNG TRÌNH", "17"],
+        ["   3.1. Cấu trúc Project chuẩn Maven trên môi trường phát triển IDE", "17"],
+        ["   3.2. Triển khai lớp kết nối và xử lý dữ liệu (DAO & PreparedStatement)", "18"],
+        ["        3.2.1. Triển khai lớp DBConnection nạp cấu hình và quản lý tài nguyên", "18"],
+        ["        3.2.2. Triển khai PreparedStatement và Quản lý Transaction an toàn", "19"],
+        ["        3.2.3. Triển khai thuật toán quy đổi điểm GradeCalculator chuẩn UTC", "20"],
+        ["        3.2.4. Triển khai xử lý file Excel bằng Apache POI trong ExcelService", "21"],
+        ["   3.3. Áp dụng chuẩn lập trình Java và Nguyên tắc tách biệt trách nhiệm", "21"],
+        ["CHƯƠNG 4: GIAO DIỆN VÀ KIỂM THỬ", "22"],
+        ["   4.1. Kết quả thiết kế giao diện người dùng (User Interface)", "22"],
+        ["        4.1.1. Màn hình Đăng nhập hiện đại, Đăng nhập 1 chạm & Thông báo lỗi", "22"],
+        ["        4.1.2. Màn hình Bảng điều khiển Quản trị viên (Admin Dashboard)", "23"],
+        ["        4.1.3. Màn hình Quản lý & Nhập điểm học phần trực quan của Giảng viên", "23"],
+        ["        4.1.4. Modal xác nhận thao tác an toàn (Confirmation Dialog)", "24"],
+        ["        4.1.5. Màn hình Tra cứu điểm sinh viên, Cảnh báo học vụ & In phiếu điểm A4", "24"],
+        ["   4.2. Kiểm thử phần mềm (Testing)", "25"],
+        ["        4.2.1. Phương pháp kiểm thử hộp đen và Kiểm tra tính hợp lệ dữ liệu", "25"],
+        ["        4.2.2. Bảng Kịch bản kiểm thử (Test Cases) chi tiết và Kết quả thực tế", "26"],
+        ["KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN", "27"],
+        ["   1. Kết quả đạt được của đề tài", "27"],
+        ["   2. Những mặt hạn chế còn tồn đọng", "27"],
+        ["   3. Hướng nghiên cứu và phát triển trong tương lai", "28"],
+        ["TÀI LIỆU THAM KHẢO", "29"]
     ]
 
-    table_toc = doc.add_table(rows=len(toc_items), cols=2)
-    set_table_borders(table_toc, color="FFFFFF", sz="0", val="none")
-    table_toc.alignment = WD_TABLE_ALIGNMENT.CENTER
-    for idx, (title, page) in enumerate(toc_items):
-        cell_t = table_toc.cell(idx, 0)
-        cell_p = table_toc.cell(idx, 1)
-        cell_t.width = Cm(14.0)
-        cell_p.width = Cm(2.0)
-        cell_t.text = title
-        cell_p.text = page
-        pt = cell_t.paragraphs[0]
-        pp = cell_p.paragraphs[0]
-        pt.paragraph_format.space_before = Pt(1)
-        pt.paragraph_format.space_after = Pt(1)
-        pp.paragraph_format.space_before = Pt(1)
-        pp.paragraph_format.space_after = Pt(1)
-        pp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        is_bold = title.startswith("CHƯƠNG") or title.startswith("PHẦN") or title.startswith("KẾT LUẬN") or title.startswith("TÀI LIỆU")
-        for r_x in pt.runs:
-            r_x.font.name = "Times New Roman"
-            r_x.font.size = Pt(11)
-            r_x.font.bold = is_bold
-            if is_bold:
-                r_x.font.color.rgb = RGBColor(0, 51, 102)
-        for r_x in pp.runs:
-            r_x.font.name = "Times New Roman"
-            r_x.font.size = Pt(11)
-            r_x.font.bold = is_bold
+    t_toc = doc.add_table(rows=len(toc_data), cols=2)
+    for r_i, r_data in enumerate(toc_data):
+        for c_i, c_val in enumerate(r_data):
+            t_toc.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_toc, [Cm(14.0), Cm(2.0)], [WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER])
 
+    # End of Page 2 -> Page Break
     doc.add_page_break()
 
-    # =========================================================================
-    # CHƯƠNG 1: TỔNG QUAN ĐỀ TÀI VÀ KHẢO SÁT BÀI TOÁN
-    # =========================================================================
-    h_c1 = doc.add_paragraph()
-    h_c1.paragraph_format.space_before = Pt(6)
-    h_c1.paragraph_format.space_after = Pt(8)
-    r = h_c1.add_run("CHƯƠNG 1: TỔNG QUAN ĐỀ TÀI VÀ KHẢO SÁT BÀI TOÁN QUẢN LÝ ĐIỂM UTC")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(14)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    # 3. LỜI NÓI ĐẦU / CẢM ƠN
+    p_pref = doc.add_paragraph()
+    p_pref.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_pref.paragraph_format.space_before = Pt(6)
+    p_pref.paragraph_format.space_after = Pt(14)
+    r_pref = p_pref.add_run("LỜI NÓI ĐẦU VÀ LỜI CẢM ƠN")
+    r_pref.font.name = "Times New Roman"
+    r_pref.font.size = Pt(16)
+    r_pref.bold = True
+    r_pref.font.color.rgb = NAVY
+
+    add_p(doc, "Trong thời đại chuyển đổi số mạnh mẽ của nền giáo dục đại học, việc ứng dụng các giải pháp công nghệ thông tin tiên tiến nhằm nâng cao chất lượng và tính minh bạch trong công tác quản lý đào tạo là một đòi hỏi vô cùng cấp thiết. Tại Trường Đại học Giao thông Vận tải (UTC), công tác quản lý điểm sinh viên theo học chế tín chỉ có quy mô rất lớn, đòi hỏi quy trình xử lý dữ liệu phức tạp, độ chính xác tuyệt đối, khả năng bảo mật cao và truy xuất lịch sử rõ ràng theo đúng Quy chế đào tạo đại học hiện hành.")
+    add_p(doc, "Xuất phát từ yêu cầu thực tiễn đó, trong khuôn khổ học phần Công nghệ Java, nhóm sinh viên chúng em đã tiến hành nghiên cứu, phân tích và xây dựng hệ thống phần mềm: 'Xây dựng Hệ thống Quản lý Điểm Sinh viên theo Học chế Tín chỉ Trường Đại học Giao thông Vận tải (UTC)'. Hệ thống được phát triển hoàn toàn trên nền tảng ứng dụng Web Java tiêu chuẩn doanh nghiệp (Java EE / Jakarta Servlet, JSP, JSTL) kết hợp kiến trúc phân lớp MVC (Model - View - Controller), giao tiếp cơ sở dữ liệu Oracle Database 23ai Free qua trình điều khiển JDBC Thin Driver và tích hợp thư viện Apache POI để xử lý bảng tính Excel chuẩn UTC.")
+    add_p(doc, "Để hoàn thành đề tài bài tập nhóm này một cách trọn vẹn và đạt chất lượng tốt nhất, nhóm chúng em xin được bày tỏ lòng biết ơn sâu sắc và chân thành nhất tới:")
+    add_p(doc, "Ban Giám hiệu Trường Đại học Giao thông Vận tải cùng Ban Chủ nhiệm Khoa Công nghệ Thông tin đã tạo điều kiện học tập thuận lợi, trang bị hệ thống phòng thực hành máy tính và tài nguyên học liệu số hiện đại cho sinh viên.", bullet=True)
+    add_p(doc, "Các Thầy, Cô giáo trong Bộ môn Công nghệ Phần mềm đã nhiệt tình truyền đạt cho chúng em những nền tảng kiến thức vững chắc về lập trình Java nâng cao, kiến trúc phần mềm, nguyên lý cơ sở dữ liệu quan hệ và kỹ năng làm việc nhóm.", bullet=True)
+    add_p(doc, "Đặc biệt, nhóm chúng em xin gửi lời cảm ơn sâu sắc nhất tới Thầy giáo hướng dẫn giảng dạy học phần Công nghệ Java. Thầy đã luôn tận tâm theo sát, định hướng chuyên môn, gợi mở phương pháp giải quyết các bài toán kỹ thuật phức tạp và đưa ra những đóng góp quý báu giúp chúng em hoàn thiện sản phẩm phần mềm đúng chuẩn kỹ thuật.", bullet=True)
+    add_p(doc, "Dù nhóm đã đầu tư rất nhiều thời gian, công sức và tinh thần trách nhiệm để xây dựng hệ thống một cách chỉn chu nhất, song do kiến thức và kinh nghiệm thực tế còn hạn chế nên bài báo cáo cũng như phần mềm khó tránh khỏi những thiếu sót nhất định. Nhóm chúng em rất mong nhận được những nhận xét, góp ý và chỉ dẫn quý báu từ quý Thầy/Cô và Hội đồng đánh giá để sản phẩm tiếp tục được hoàn thiện và phát triển hơn nữa.")
+    add_p(doc, "Chúng em xin chân thành cảm ơn!")
+
+    p_sig = doc.add_paragraph()
+    p_sig.paragraph_format.left_indent = Cm(9.5)
+    p_sig.paragraph_format.space_before = Pt(16)
+    p_sig.paragraph_format.space_after = Pt(2)
+    r_sig1 = p_sig.add_run("Hà Nội, ngày 04 tháng 11 năm 2026\n")
+    r_sig1.italic = True
+    r_sig1.font.name = "Times New Roman"
+    r_sig1.font.size = Pt(11.5)
+    r_sig2 = p_sig.add_run("Đại diện Nhóm sinh viên thực hiện\n")
+    r_sig2.bold = True
+    r_sig2.font.name = "Times New Roman"
+    r_sig2.font.size = Pt(12)
+    r_sig3 = p_sig.add_run("Nguyễn Hoàng Nam (Trưởng nhóm)")
+    r_sig3.font.name = "Times New Roman"
+    r_sig3.font.size = Pt(12)
+    r_sig3.bold = True
+    r_sig3.font.color.rgb = NAVY
+
+    # End of Page 3 -> Page Break
+    doc.add_page_break()
+
+print("Appended cover and intro successfully.")
+
+def build_chapter_1(doc):
+    # CHƯƠNG 1
+    add_heading_1(doc, "CHƯƠNG 1: KHẢO SÁT BÀI TOÁN VÀ PHÂN TÍCH YÊU CẦU")
+    
+    add_callout(doc, "TỔNG QUAN NỘI DUNG CHƯƠNG 1", [
+        "Chương 1 tập trung khảo sát hiện trạng nghiệp vụ quản lý điểm tại Trường Đại học Giao thông Vận tải (UTC), phân tích những bất cập của phương pháp thủ công và xác định mục tiêu xây dựng phần mềm.",
+        "Phân tích chi tiết yêu cầu chức năng thông qua các biểu đồ Use Case tổng quát và Use Case phân rã của 3 tác nhân: Quản trị viên (Admin - Phòng Đào tạo), Giảng viên và Sinh viên.",
+        "Xác lập các yêu cầu phi chức năng khắt khe: Toàn vẹn dữ liệu, kiểm tra hợp lệ (Validation đa tầng), xử lý ngoại lệ an toàn, chống tấn công SQL Injection và định hình nền tảng công nghệ Java Web Servlet/JSP kết nối Oracle Database 23ai."
+    ])
 
     # 1.1
-    h_11 = doc.add_paragraph()
-    h_11.paragraph_format.space_before = Pt(6)
-    h_11.paragraph_format.space_after = Pt(4)
-    r = h_11.add_run("1.1. Đặt vấn đề và tính cấp thiết của đề tài")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    add_heading_2(doc, "1.1. Khảo sát hiện trạng và mô tả bài toán")
+    
+    add_heading_3(doc, "1.1.1. Bối cảnh và khó khăn khi quản lý điểm thủ công bằng Excel")
+    add_p(doc, "Trường Đại học Giao thông Vận tải là một trong những trường đại học kỹ thuật trọng điểm hàng đầu của cả nước, áp dụng triệt để quy chế đào tạo đại học theo hệ thống tín chỉ. Với quy mô đào tạo trên 30.000 sinh viên, hàng trăm chuyên ngành và hàng ngàn lớp học phần được tổ chức giảng dạy trong mỗi năm học, khối lượng dữ liệu điểm số phát sinh là vô cùng lớn và có tính biến động cao.")
+    add_p(doc, "Trước đây, tại nhiều khoa và bộ môn, công tác tổng hợp và quản lý điểm thi vẫn phụ thuộc một phần vào các bảng tính Microsoft Excel rời rạc được lưu trữ cục bộ trên máy tính cá nhân của giảng viên hoặc cán bộ quản lý. Thực trạng này đã bộc lộ nhiều khó khăn, bất cập nghiêm trọng:")
+    add_p(doc, "Nguy cơ sai lệch và thất lạc dữ liệu: Việc lưu trữ phân tán khiến dữ liệu điểm dễ bị ghi đè, nhầm lẫn các phiên bản (version), thậm chí mất trắng khi xảy ra sự cố hỏng hóc phần cứng hoặc nhiễm mã độc trên máy tính cá nhân.", bullet=True)
+    add_p(doc, "Sai sót trong quá trình tính toán và quy đổi điểm: Công thức tính điểm tổng kết học phần, quy đổi từ thang điểm 10 sang thang điểm chữ (A+, A, B+, B, C+, C, D+, D, F+, F) và thang điểm 4 theo Quy chế đào tạo tín chỉ UTC rất phức tạp, đặc biệt là quy định về điểm liệt khi thi kết thúc học phần dưới 4.0. Việc tính toán thủ công rất dễ xảy ra nhầm lẫn.", bullet=True)
+    add_p(doc, "Thiếu tính bảo mật và không có cơ chế kiểm toán (Audit Log): Các file Excel không có cơ chế phân quyền truy cập chặt chẽ, không thể ghi nhận ai đã sửa điểm, sửa vào thời gian nào và lý do sửa là gì. Điều này tiềm ẩn nguy cơ tiêu cực và gây khó khăn cho công tác thanh tra, hậu kiểm.", bullet=True)
+    add_p(doc, "Chậm trễ trong thông báo và cảnh báo học vụ: Sinh viên không thể tra cứu điểm thi kịp thời để lên kế hoạch học tập hoặc nộp đơn thắc mắc. Phòng Đào tạo mất nhiều tuần để tổng hợp CPA toàn khóa nhằm phát hiện các trường hợp sinh viên bị cảnh báo học tập hoặc có nguy cơ buộc thôi học.", bullet=True)
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Trong tiến trình chuyển đổi số giáo dục đại học theo định hướng của Bộ Giáo dục và Đào tạo [9], quy chế đào tạo đại học chính quy theo học chế tín chỉ "
-        "đang đặt ra những yêu cầu rất khắt khe về độ chính xác, tốc độ tính toán và tính minh bạch trong quản lý kết quả học tập của sinh viên. "
-        "Tại Trường Đại học Giao thông Vận tải (UTC), mỗi học kỳ có hàng chục nghìn sinh viên theo học với hàng trăm lớp học phần khác nhau [10]. "
-        "Phương thức quản lý truyền thống hoặc các hệ thống bán tự động phụ thuộc vào bảng tính rời rạc thường bộc lộ những nhược điểm lớn: "
-        "nguy cơ sai lệch công thức quy đổi từ thang điểm 10 sang thang điểm chữ và thang điểm 4, quy trình nộp và phê duyệt điểm chậm chạp, "
-        "thiếu cơ chế kiểm soát sai sót trong quá trình nhập liệu, và vi phạm quy chế điểm liệt thi kết thúc học phần.\n\n"
-        "Bên cạnh đó, việc thiếu hụt cơ chế giám sát lưu vết (Audit Logging) đối với các hành vi chỉnh sửa điểm sau khi đã công bố là một lỗ hổng bảo mật nghiêm trọng. "
-        "Xuất phát từ thực tiễn trên, việc nghiên cứu và phát triển \"Hệ thống Quản lý điểm Sinh viên theo học chế tín chỉ sử dụng Java Web (Servlet / JSP / JDBC) và Oracle Database 23ai\" "
-        "trong khuôn khổ học phần Công nghệ Java là một giải pháp mang tính ứng dụng thực tiễn cao, giúp chuẩn hóa toàn bộ vòng đời của điểm thi, đảm bảo tuân thủ nghiêm ngặt quy chế đào tạo của UTC, "
-        "đồng thời nâng cao hiệu suất làm việc của giảng viên và phòng Đào tạo [1], [2], [4], [10]."
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
+    add_heading_3(doc, "1.1.2. Mục tiêu xây dựng phần mềm Quản lý điểm UTC")
+    add_p(doc, "Để khắc phục triệt để các hạn chế nêu trên, việc xây dựng một hệ thống phần mềm Quản lý điểm sinh viên trực tuyến theo kiến trúc tập trung, bảo mật và chuẩn hóa theo quy chế của Trường Đại học Giao thông Vận tải là yêu cầu cấp thiết. Mục tiêu cụ thể của đề tài bao gồm:")
+    add_p(doc, "Tự động hóa toàn diện quy trình nhập điểm: Cung cấp cho giảng viên giao diện Web nhập điểm trực quan, hỗ trợ tính toán điểm tổng kết theo trọng số chuyên cần, giữa kỳ, thi kết thúc học phần và tự động quy đổi điểm chữ, điểm hệ 4 tức thời theo thời gian thực.", bullet=True)
+    add_p(doc, "Chuẩn hóa quy trình xét duyệt điểm chặt chẽ: Thiết lập luồng trạng thái nộp điểm rõ ràng giữa Giảng viên và Phòng Đào tạo (Bản nháp -> Chờ phê duyệt -> Đã công bố), ngăn chặn việc tùy tiện sửa điểm khi chưa được cấp thẩm quyền cho phép.", bullet=True)
+    add_p(doc, "Lưu vết kiểm toán lịch sử sửa điểm (Audit Trails): Mọi thao tác cập nhật, điều chỉnh điểm số sau khi đã công bố đều bắt buộc phải ghi rõ lý do và tự động lưu vào bảng nhật ký lịch sử phục vụ công tác thanh tra, hậu kiểm của Nhà trường.", bullet=True)
+    add_p(doc, "Hỗ trợ Import / Export Excel thông minh: Cho phép giảng viên xuất mẫu sổ điểm lớp học phần và nhập dữ liệu điểm từ tệp Excel (.xlsx) chuẩn UTC thông qua thư viện Apache POI, giúp tiết kiệm thời gian vào điểm cho các lớp đông sinh viên.", bullet=True)
+    add_p(doc, "Tra cứu điểm và tự động cảnh báo học vụ: Sinh viên có thể tra cứu chi tiết kết quả học tập mọi lúc mọi nơi; hệ thống tự động tính điểm trung bình học kỳ (GPA), điểm tích lũy toàn khóa (CPA) và tự động nhận diện, lập danh sách cảnh báo sinh viên có CPA dưới 1.00.", bullet=True)
+    add_p(doc, "In ấn phiếu điểm chuẩn hóa A4: Cung cấp tính năng in bảng điểm học kỳ trực tiếp trên trình duyệt theo đúng quy cách mẫu in văn bản hành chính của Trường Đại học Giao thông Vận tải.", bullet=True)
+
+    add_heading_3(doc, "1.1.3. Liệt kê các đối tượng quản lý chính trong hệ thống")
+    add_p(doc, "Hệ thống Quản lý điểm UTC được thiết kế xoay quanh 5 nhóm đối tượng quản lý cốt lõi, phản ánh chính xác cấu trúc dữ liệu đào tạo đại học:")
+    add_p(doc, "Đối tượng Tài khoản (TAI_KHOAN): Quản lý thông tin định danh người dùng trong hệ thống (Tên đăng nhập, Mật khẩu đã băm bằng thuật toán an toàn BCrypt, Vai trò người dùng gồm ADMIN, GIANG_VIEN, SINH_VIEN, và Trạng thái kích hoạt).", bullet=True)
+    add_p(doc, "Đối tượng Sinh viên (SINH_VIEN): Quản lý hồ sơ học vụ của sinh viên bao gồm Mã sinh viên (Khóa chính), Họ và tên, Ngày sinh, Giới tính, Quê quán, Lớp chuyên ngành trực thuộc và liên kết khóa ngoại với tài khoản người dùng.", bullet=True)
+    add_p(doc, "Đối tượng Giảng viên (GIANG_VIEN): Quản lý thông tin cán bộ giảng dạy gồm Mã giảng viên, Họ và tên, Học hàm, Học vị, Email công vụ, Khoa chuyên môn và tài khoản đăng nhập.", bullet=True)
+    add_p(doc, "Đối tượng Môn học & Lớp học phần (MON_HOC, LOP_HOC_PHAN): Quản lý danh mục học phần đào tạo (Mã môn, Tên môn, Số tín chỉ, Tỷ lệ phần trăm trọng số điểm Chuyên cần, Giữa kỳ, Thi cuối kỳ) và các lớp học phần cụ thể được mở trong từng học kỳ do giảng viên phụ trách giảng dạy.", bullet=True)
+    add_p(doc, "Đối tượng Kết quả học tập & Nhật ký kiểm toán (BANG_DIEM, LICHSU_SUA_DIEM): Quản lý bảng điểm chi tiết của từng sinh viên theo lớp học phần (Điểm chuyên cần, điểm giữa kỳ, điểm thi cuối kỳ, điểm tổng kết hệ 10, điểm chữ, điểm hệ 4 và trạng thái duyệt điểm); đồng thời lưu trữ toàn bộ lịch sử các lần hiệu chỉnh điểm thi phục vụ công tác thanh tra học vụ.", bullet=True)
 
     # 1.2
-    h_12 = doc.add_paragraph()
-    h_12.paragraph_format.space_before = Pt(6)
-    h_12.paragraph_format.space_after = Pt(4)
-    r = h_12.add_run("1.2. Mục tiêu, phạm vi và mô hình phân quyền người dùng (RBAC)")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    add_heading_2(doc, "1.2. Phân tích yêu cầu chức năng (Mô tả chi tiết từng Use Case)")
+    
+    add_heading_3(doc, "1.2.1. Biểu đồ Use Case tổng quát và phân rã các tác nhân")
+    add_p(doc, "Hệ thống Quản lý điểm UTC bao gồm 3 tác nhân người dùng (Actors) chính tham gia vào các quy trình nghiệp vụ:")
+    add_p(doc, "Quản trị viên / Phòng Đào tạo (Admin): Có quyền hạn cao nhất trong hệ thống, chịu trách nhiệm quản lý danh mục đào tạo (Khoa, Ngành, Lớp chuyên ngành, Môn học, Lớp học phần, Sinh viên, Giảng viên), thực hiện phê duyệt bảng điểm học phần, xem thống kê phổ điểm toàn trường và tra cứu nhật ký kiểm toán sửa điểm.", bullet=True)
+    add_p(doc, "Giảng viên (Lecturer): Được phân quyền quản lý các lớp học phần được phân công giảng dạy; nhập, hiệu chỉnh và xóa điểm thi của sinh viên; xuất/nhập bảng điểm qua file Excel (.xlsx) và gửi bảng điểm lên Phòng Đào tạo để đề nghị phê duyệt công bố.", bullet=True)
+    add_p(doc, "Sinh viên (Student): Được phân quyền tra cứu thông tin học vụ cá nhân, xem bảng điểm chi tiết từng học kỳ, theo dõi điểm GPA học kỳ và CPA tích lũy toàn khóa, kiểm tra thông báo cảnh báo học vụ và thực hiện in phiếu điểm học kỳ trực tiếp định dạng chuẩn A4.", bullet=True)
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Mục tiêu cốt lõi của đề tài là xây dựng một nền tảng Web quản lý điểm tập trung, vận hành tin cậy, tự động hóa quy trình tính toán "
-        "và phân quyền người dùng theo mô hình Kiểm soát truy cập dựa trên vai trò (Role-Based Access Control - RBAC) [11]. "
-        "Phạm vi ứng dụng của hệ thống được giới hạn trong quy trình quản lý điểm các học phần đào tạo tín chỉ tại Trường Đại học Giao thông Vận tải, "
-        "hỗ trợ 3 nhóm đối tượng tác nhân với đặc quyền độc lập:"
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-
-    bullet_roles = [
-        ("Sinh viên (Student): ", "Đăng nhập tra cứu bảng điểm học kỳ, xem điểm chi tiết các đầu điểm thành phần, theo dõi GPA/CPA tích lũy toàn khóa và in bảng điểm học kỳ trực tiếp theo định dạng trang in A4 tiêu chuẩn có dấu xác nhận của Trường ĐH Giao thông Vận tải."),
-        ("Giảng viên (Lecturer): ", "Quản lý danh sách các lớp học phần được phân công giảng dạy, nhập điểm thành phần trực tiếp trên giao diện web có kiểm tra tính hợp lệ tức thời, nhập điểm hàng loạt từ tệp Excel chuẩn thông qua Apache POI, xuất sổ điểm và nộp điểm đề nghị phê duyệt [6]."),
-        ("Phòng Đào tạo (Admin): ", "Toàn quyền quản lý danh mục đào tạo (Khoa, Ngành, Lớp chuyên ngành, Lớp học phần, Học kỳ, Môn học), cấu hình trọng số % điểm môn học, kiểm duyệt và phê duyệt trạng thái bảng điểm từ Giảng viên, xem biểu đồ phổ điểm toàn trường và truy vấn nhật ký lưu vết kiểm toán (Audit Log).")
-    ]
-    for role_name, role_desc in bullet_roles:
-        p_b = doc.add_paragraph(style='List Bullet')
-        p_b.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p_b.paragraph_format.space_before = Pt(2)
-        p_b.paragraph_format.space_after = Pt(2)
-        p_b.paragraph_format.line_spacing = 1.25
-        r_b1 = p_b.add_run(role_name)
-        r_b1.font.name = "Times New Roman"
-        r_b1.font.size = Pt(12.5)
-        r_b1.font.bold = True
-        r_b2 = p_b.add_run(role_desc)
-        r_b2.font.name = "Times New Roman"
-        r_b2.font.size = Pt(12.5)
-
-    # 1.3
-    h_13 = doc.add_paragraph()
-    h_13.paragraph_format.space_before = Pt(6)
-    h_13.paragraph_format.space_after = Pt(4)
-    r = h_13.add_run("1.3. Quy tắc nghiệp vụ tính điểm chuẩn tín chỉ Trường ĐH Giao thông Vận tải")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Hệ thống cài đặt giải thuật tính điểm tuân thủ chính xác Thông tư 08/2021/TT-BGDĐT [9] và Quy chế đào tạo đại học chính quy của UTC [10]:\n"
-        "• Công thức tính điểm tổng kết học phần (thang điểm 10): Tùy theo cấu trúc môn học, điểm tổng kết (Điểm TK10) được tính theo công thức trọng số linh hoạt:\n"
-        "    Điểm TK10 = (Điểm Chuyên cần × W_CC) + (Điểm Quá trình / Giữa kỳ × W_GK) + (Điểm Thi cuối kỳ × W_THI)\n"
-        "    Trong đó: W_CC + W_GK + W_THI = 1.0 (Tổng trọng số luôn bằng 100%). Kết quả làm tròn 1 chữ số thập phân.\n"
-        "• Quy tắc điều kiện liệt thi: Nếu Điểm Thi cuối kỳ < 4.0 điểm, sinh viên bị tính là điểm liệt thi. Khi đó, dù điểm trung bình tổng kết đạt yêu cầu, "
-        "điểm chữ vẫn bị quy về F+ (nếu Điểm TK10 >= 2.0) hoặc F (nếu Điểm TK10 < 2.0) và kết quả học phần là KHONG_DAT (buộc phải học lại)."
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-
-    p_tbl_lbl = doc.add_paragraph()
-    p_tbl_lbl.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_tbl_lbl.paragraph_format.space_before = Pt(4)
-    p_tbl_lbl.paragraph_format.space_after = Pt(4)
-    r = p_tbl_lbl.add_run("Bảng 1.1: Bảng quy đổi thang điểm chuẩn tín chỉ tại Trường ĐH Giao thông Vận tải")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(11.5)
-    r.font.bold = True
-    r.font.italic = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-
-    table_grade = doc.add_table(rows=11, cols=5)
-    gr_widths = [Cm(3.0), Cm(2.5), Cm(2.5), Cm(4.0), Cm(4.0)]
-    gr_headers = ["Thang điểm 10", "Điểm chữ UTC", "Thang điểm 4", "Xếp loại học lực", "Kết quả học phần"]
-    gr_data = [
-        ["9.5 – 10.0", "A+", "4.0", "Xuất sắc", "Đạt (Tích lũy tín chỉ)"],
-        ["8.5 – 9.4", "A", "3.8", "Giỏi", "Đạt (Tích lũy tín chỉ)"],
-        ["8.0 – 8.4", "B+", "3.5", "Khá giỏi", "Đạt (Tích lũy tín chỉ)"],
-        ["7.0 – 7.9", "B", "3.0", "Khá", "Đạt (Tích lũy tín chỉ)"],
-        ["6.0 – 6.9", "C+", "2.5", "Trung bình khá", "Đạt (Tích lũy tín chỉ)"],
-        ["5.5 – 5.9", "C", "2.0", "Trung bình", "Đạt (Tích lũy tín chỉ)"],
-        ["4.5 – 5.4", "D+", "1.5", "Trung bình yếu", "Đạt (Tích lũy tín chỉ)"],
-        ["4.0 – 4.4", "D", "1.0", "Yếu (Đạt tối thiểu)", "Đạt (Cần cải thiện)"],
-        ["2.0 – 3.9 (hoặc Liệt thi)", "F+", "0.5", "Kém (Không đạt)", "Không đạt (Học lại)"],
-        ["0.0 – 1.9 (hoặc Liệt thi)", "F", "0.0", "Kém (Không đạt)", "Không đạt (Học lại)"]
-    ]
-    format_table(table_grade, gr_widths, gr_headers, gr_data)
-
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_before = Pt(6)
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "• Công thức tính GPA (Điểm trung bình học kỳ) và CPA (Điểm trung bình tích lũy toàn khóa):\n"
-        "    GPA = [∑ (Điểm hệ 4 của học phần i × Số tín chỉ học phần i)] / [∑ Số tín chỉ các học phần đăng ký trong kỳ]\n"
-        "    CPA = [∑ (Điểm hệ 4 cao nhất của học phần j × Số tín chỉ học phần j)] / [∑ Số tín chỉ tích lũy toàn khóa]\n"
-        "Công thức trên được hiện thực hóa tự động trong service GradeCalculator.java, làm tròn 2 chữ số thập phân chính xác.\n"
-        "• Quy định Cảnh báo học vụ: Sinh viên có CPA < 1.00 bị cảnh báo học vụ mức 1; CPA < 0.80 bị cảnh báo học vụ mức 2 (nguy cơ buộc thôi học) [10]."
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-
-    # 1.4
-    h_14 = doc.add_paragraph()
-    h_14.paragraph_format.space_before = Pt(6)
-    h_14.paragraph_format.space_after = Pt(4)
-    r = h_14.add_run("1.4. Nền tảng Công nghệ Java và môi trường phát triển ứng dụng")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-
-    tech_items = [
-        ("Nền tảng ngôn ngữ Backend (Java SE 17/21 LTS): ", "Khai thác tối đa lập trình hướng đối tượng (OOP: Kế thừa, Đa hình, Đóng gói, Trừu tượng), cấu trúc dữ liệu Collections Framework và tính toán tài chính chính xác cao với BigDecimal [1], [13]."),
-        ("Công nghệ Java Web cốt lõi (Jakarta Servlet 4.0 & JSP 2.3): ", "Servlet đóng vai trò Controller trung tâm điều phối yêu cầu HTTP, kiểm soát phiên làm việc HttpSession và multipart upload; JSP kết hợp thư viện JSTL 1.2 phân tách rõ rệt giữa mã lệnh Java và giao diện HTML [2], [3]."),
-        ("Tầng dữ liệu JDBC thuần & Oracle JDBC Driver (ojdbc11): ", "Giao tiếp trực tiếp tới Oracle Database 23ai Free (Pluggable Database FREEPDB1 trên cổng 1521), thực thi truy vấn qua PreparedStatement chống SQL Injection và tối ưu Shared Pool [4], [5]."),
-        ("Thư viện xử lý bảng tính Apache POI (poi-ooxml 5.2.5): ", "Xử lý nạp điểm hàng loạt từ file Excel (.xlsx) với kiểm tra hợp lệ từng ô và xuất sổ điểm lớp học phần [6]."),
-        ("Máy chủ Web nhúng & Đóng gói (Embedded Tomcat & Apache Maven): ", "Maven 3.9 quản lý vòng đời dự án [8]; Embedded Tomcat 9/10 cho phép khởi chạy ứng dụng độc lập 1-Click qua file Main.java [7].")
-    ]
-    for t_title, t_desc in tech_items:
-        p_t = doc.add_paragraph(style='List Bullet')
-        p_t.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p_t.paragraph_format.space_before = Pt(2)
-        p_t.paragraph_format.space_after = Pt(2)
-        p_t.paragraph_format.line_spacing = 1.25
-        r1 = p_t.add_run(t_title)
-        r1.font.name = "Times New Roman"
-        r1.font.size = Pt(12.5)
-        r1.font.bold = True
-        r2 = p_t.add_run(t_desc)
-        r2.font.name = "Times New Roman"
-        r2.font.size = Pt(12.5)
-
-    doc.add_page_break()
-
-    # =========================================================================
-    # CHƯƠNG 2: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG
-    # =========================================================================
-    h_c2 = doc.add_paragraph()
-    h_c2.paragraph_format.space_before = Pt(6)
-    h_c2.paragraph_format.space_after = Pt(8)
-    r = h_c2.add_run("CHƯƠNG 2: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(14)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-
-    # 2.1
-    h_21 = doc.add_paragraph()
-    h_21.paragraph_format.space_before = Pt(6)
-    h_21.paragraph_format.space_after = Pt(4)
-    r = h_21.add_run("2.1. Phân tích yêu cầu chức năng theo 3 tác nhân (RBAC)")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Hệ thống phân rã ranh giới chức năng rõ ràng giữa 3 tác nhân chính theo mô hình kiểm soát truy cập dựa trên vai trò (RBAC) [11]:"
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-
-    use_case_ascii = """+-------------------------------------------------------------------------------------------------+
-|                 HỆ THỐNG QUẢN LÝ ĐIỂM UTC - CÔNG NGHỆ JAVA (RBAC)                               |
+    uc_ascii = """+-------------------------------------------------------------------------------------------------+
+|               HỆ THỐNG QUẢN LÝ ĐIỂM UTC - MÔ HÌNH PHÂN QUYỀN VAI TRÒ (RBAC)                     |
 +-------------------------------------------------------------------------------------------------+
           |
   [ SINH VIÊN ] ------------> (Đăng nhập hệ thống / Đổi mật khẩu)
@@ -629,42 +590,26 @@ def build_report():
                            -> (Xem báo cáo thống kê phổ điểm học phần, tỷ lệ Đạt/Học lại)
                            -> (Tra cứu và lọc Nhật ký sửa điểm kiểm toán - Audit Logs)
 +-------------------------------------------------------------------------------------------------+"""
-    add_code_block(doc, use_case_ascii, "Hình 2.1: Sơ đồ phân rã chức năng Use Case theo 3 vai trò RBAC")
+    add_diagram_box(doc, uc_ascii, "Biểu đồ Use Case Tổng quát Hệ thống Quản lý Điểm UTC")
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Mỗi Use Case trên được bảo vệ bởi tầng lọc AuthFilter. Khi một yêu cầu HTTP gửi đến, hệ thống tự động kiểm tra vai trò người dùng trong HttpSession "
-        "để ngăn chặn các hành vi leo quyền (Privilege Escalation), đảm bảo Sinh viên không thể gọi đến các endpoint nhập điểm hoặc phê duyệt điểm [2]."
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
+    add_heading_3(doc, "1.2.2. Nhóm chức năng Quản lý hệ thống và Xác thực phân quyền")
+    add_p(doc, "Chức năng Đăng nhập (Sign In): Cho phép người dùng nhập Tên đăng nhập và Mật khẩu. Hệ thống kiểm tra trong bảng TAI_KHOAN của cơ sở dữ liệu Oracle:")
+    add_p(doc, "Nếu tên đăng nhập không tồn tại hoặc tài khoản bị khóa (TRANG_THAI = 0): Hệ thống hiển thị thông báo lỗi rõ ràng trên giao diện.", bullet=True)
+    add_p(doc, "Nếu tài khoản hợp lệ: Hệ thống sử dụng thư viện jBCrypt để kiểm tra tính khớp nối giữa mật khẩu người dùng nhập vào và chuỗi băm mật khẩu (BCrypt Hash) lưu trữ trong cơ sở dữ liệu. Khi khớp nối thành công, hệ thống khởi tạo HttpSession, lưu trữ thông tin User Principal và chuyển hướng người dùng đến đúng bảng điều khiển theo vai trò (Admin -> /admin/dashboard, Giảng viên -> /lecturer/classes, Sinh viên -> /student/grades).", bullet=True)
+    add_p(doc, "Tính năng Đăng nhập 1 chạm (One-click Login): Hệ thống tích hợp sẵn các nút chọn tài khoản thử nghiệm nhanh ngay dưới biểu mẫu đăng nhập, hỗ trợ đắc lực cho hội đồng phản biện và giáo viên chấm thi đăng nhập trực tiếp các vai trò thử nghiệm mà không cần ghi nhớ mật khẩu.", bullet=True)
+    add_p(doc, "Chức năng Đổi mật khẩu (Change Password): Cho phép người dùng chủ động thay đổi mật khẩu đăng nhập, yêu cầu nhập mật khẩu cũ để xác thực và nhập mật khẩu mới hai lần để đảm bảo tính chính xác.", bullet=True)
+    add_p(doc, "Phân quyền truy cập RBAC (Role-Based Access Control): Sử dụng bộ lọc AuthFilter (triển khai giao diện javax.servlet.Filter) để chặn đứng mọi hành vi truy cập trái phép vào các đường dẫn nhạy cảm khi chưa xác thực hoặc không đủ đặc quyền.", bullet=True)
 
-    # 2.2
-    h_22 = doc.add_paragraph()
-    h_22.paragraph_format.space_before = Pt(6)
-    h_22.paragraph_format.space_after = Pt(4)
-    r = h_22.add_run("2.2. Quy trình nghiệp vụ cốt lõi và vòng đời trạng thái bảng điểm")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    add_heading_3(doc, "1.2.3. Nhóm chức năng Quản lý danh mục đào tạo")
+    add_p(doc, "Nhóm chức năng này dành riêng cho vai trò Quản trị viên (Phòng Đào tạo) nhằm quản lý dữ liệu nền tảng của Nhà trường:")
+    add_p(doc, "Quản lý Sinh viên: Cho phép xem danh sách sinh viên theo từng lớp chuyên ngành hoặc khoa, thêm mới từng sinh viên hoặc nạp danh sách hàng loạt, cập nhật thông tin sinh viên và xóa sinh viên (có kiểm tra ràng buộc toàn vẹn dữ liệu điểm số trước khi xóa). Biểu mẫu hỗ trợ nút 'Làm mới' (Reset Form) để đưa các trường nhập liệu về trạng thái ban đầu.", bullet=True)
+    add_p(doc, "Quản lý Môn học: Cho phép khai báo môn học mới, thiết lập số tín chỉ và tỷ lệ phần trăm trọng số điểm đánh giá (ví dụ: Chuyên cần 10%, Giữa kỳ 30%, Thi kết thúc học phần 60%). Tổng tỷ lệ các thành phần bắt buộc phải bằng đúng 100%.", bullet=True)
+    add_p(doc, "Quản lý Lớp học phần: Mở các lớp học phần tương ứng trong từng học kỳ, chỉ định giảng viên phụ trách giảng dạy và thiết lập số lượng sinh viên tối đa.", bullet=True)
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Điểm mấu chốt tạo nên tính chặt chẽ của hệ thống là Máy trạng thái hữu hạn (Finite State Machine) quản lý vòng đời của bảng điểm. "
-        "Một bảng điểm của lớp học phần không thể xuất hiện tùy tiện cho sinh viên xem ngay khi giảng viên mới bắt đầu nhập liệu, "
-        "mà phải trải qua quy trình 3 bước nghiêm ngặt:"
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-
-    lifecycle_ascii = """+---------------+          Giảng viên nộp điểm           +-----------------+
+    add_heading_3(doc, "1.2.4. Nhóm chức năng Quản lý điểm số và Quy trình xét duyệt điểm")
+    add_p(doc, "Đây là nhóm chức năng nghiệp vụ trọng tâm của hệ thống, được thiết kế với quy trình phê duyệt điểm khép kín 3 bước:")
+    
+    flow_ascii = """+---------------+          Giảng viên nộp điểm           +-----------------+
 |     DRAFT     |  ------------------------------------>  |    SUBMITTED    |
 |  (Bản nháp)   |        (Gửi phê duyệt lên P.ĐT)         |  (Chờ phê duyệt)|
 +---------------+                                         +-----------------+
@@ -675,62 +620,88 @@ def build_report():
                                                             |    PUBLISHED    |
                                                             |  (Đã công bố)   |
                                                             +-----------------+"""
-    add_code_block(doc, lifecycle_ascii, "Hình 2.2: Sơ đồ chuyển đổi trạng thái của bảng điểm lớp học phần")
+    add_diagram_box(doc, flow_ascii, "Quy trình Xét duyệt và Công bố Điểm Học phần UTC")
 
-    steps_desc = [
-        ("1. Trạng thái DRAFT (Bản nháp): ", "Khi lớp học phần được tạo, bảng điểm ở trạng thái DRAFT. Giảng viên được toàn quyền nhập điểm, sửa đổi, import từ file Excel nhiều lần. Tại trạng thái này, sinh viên hoàn toàn chưa nhìn thấy điểm nhằm tránh gây hoang mang khi điểm chưa hoàn chỉnh."),
-        ("2. Trạng thái SUBMITTED (Đã nộp, Chờ phê duyệt): ", "Sau khi hoàn tất việc vào điểm và kiểm tra khớp với bài thi, Giảng viên thực hiện thao tác 'Gửi phê duyệt'. Trạng thái chuyển sang SUBMITTED. Giảng viên bị khóa chức năng sửa đổi để chờ Phòng Đào tạo kiểm tra."),
-        ("3. Trạng thái PUBLISHED (Đã công bố): ", "Cán bộ Phòng Đào tạo kiểm tra tính hợp lệ của bảng điểm. Khi nhấn 'Phê duyệt', trạng thái chuyển thành PUBLISHED. Sinh viên chính thức xem được điểm trên cổng thông tin cá nhân và điểm được tính vào GPA/CPA tích lũy.")
+    add_p(doc, "Bước 1 - Giảng viên nhập điểm (Trạng thái DRAFT): Giảng viên vào màn hình nhập điểm của lớp học phần, giao diện hiển thị bảng dữ liệu Web Data Table trực quan (thay thế cho JTable trong ứng dụng Swing Desktop). Giảng viên nhập điểm chuyên cần, giữa kỳ, thi kết thúc học phần hoặc chọn nạp dữ liệu tự động từ file Excel. Hệ thống tự động tính toán điểm tổng kết hệ 10 và quy đổi điểm chữ, điểm hệ 4 theo thời gian thực.", bullet=True)
+    add_p(doc, "Bước 2 - Giảng viên gửi phê duyệt (Trạng thái SUBMITTED): Sau khi kiểm tra đầy đủ danh sách điểm của lớp, giảng viên bấm nút 'Nộp điểm lên Phòng Đào tạo'. Bảng điểm chuyển sang trạng thái chờ phê duyệt, khóa quyền sửa trực tiếp của giảng viên nhằm bảo vệ tính toàn vẹn dữ liệu.", bullet=True)
+    add_p(doc, "Bước 3 - Phòng Đào tạo phê duyệt (Trạng thái PUBLISHED): Cán bộ Phòng Đào tạo kiểm tra tính hợp lệ của sổ điểm. Nếu hợp lệ, bấm nút 'Phê duyệt & Công bố', bảng điểm chính thức chuyển sang trạng thái PUBLISHED và hiển thị trên tài khoản của sinh viên. Nếu phát hiện sai sót, cán bộ có thể từ chối và yêu cầu giảng viên kiểm tra lại.", bullet=True)
+    add_p(doc, "Nhật ký kiểm toán sửa điểm (Audit Log): Trường hợp bảng điểm đã ở trạng thái PUBLISHED nhưng có quyết định sửa điểm do sai sót kỹ thuật, hệ thống bắt buộc người dùng phải nhập lý do sửa đổi. Hệ thống sẽ lưu giữ cả giá trị điểm cũ, giá trị điểm mới, người thực hiện và mốc thời gian sửa vào bảng LICHSU_SUA_DIEM.", bullet=True)
+
+    add_p(doc, "Bảng quy định chuẩn quy đổi thang điểm học phần áp dụng tại Trường Đại học Giao thông Vận tải (theo Thông tư 08/2021/TT-BGDĐT):")
+    
+    scale_data = [
+        ["Thang điểm 10", "Điểm chữ UTC", "Thang điểm 4", "Xếp loại học lực", "Quy định điều kiện"],
+        ["8.5 - 10.0", "A", "4.0", "Xuất sắc", "Điểm thi kết thúc học phần >= 4.0"],
+        ["8.0 - 8.4", "B+", "3.5", "Giỏi", "Điểm thi kết thúc học phần >= 4.0"],
+        ["7.0 - 7.9", "B", "3.0", "Khá", "Điểm thi kết thúc học phần >= 4.0"],
+        ["6.5 - 6.9", "C+", "2.5", "Trung bình khá", "Điểm thi kết thúc học phần >= 4.0"],
+        ["5.5 - 6.4", "C", "2.0", "Trung bình", "Điểm thi kết thúc học phần >= 4.0"],
+        ["5.0 - 5.4", "D+", "1.5", "Trung bình yếu", "Điểm thi kết thúc học phần >= 4.0"],
+        ["4.0 - 4.9", "D", "1.0", "Yếu (Đạt yêu cầu)", "Điểm thi kết thúc học phần >= 4.0"],
+        ["2.0 - 3.9", "F+", "0.5", "Kém (Không đạt)", "Hoặc bị điểm liệt thi kết thúc < 4.0"],
+        ["0.0 - 1.9", "F", "0.0", "Kém (Phải học lại)", "Bắt buộc phải đăng ký học lại học phần"]
     ]
-    for s_title, s_detail in steps_desc:
-        p_s = doc.add_paragraph(style='List Bullet')
-        p_s.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p_s.paragraph_format.space_before = Pt(2)
-        p_s.paragraph_format.space_after = Pt(2)
-        p_s.paragraph_format.line_spacing = 1.25
-        r1 = p_s.add_run(s_title)
-        r1.font.name = "Times New Roman"
-        r1.font.size = Pt(12)
-        r1.font.bold = True
-        r2 = p_s.add_run(s_detail)
-        r2.font.name = "Times New Roman"
-        r2.font.size = Pt(12)
+    t_scale = doc.add_table(rows=len(scale_data), cols=5)
+    for r_i, r_data in enumerate(scale_data):
+        for c_i, c_val in enumerate(r_data):
+            t_scale.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_scale, [Cm(2.6), Cm(2.4), Cm(2.4), Cm(3.6), Cm(5.4)],
+                 [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT])
 
+    add_heading_3(doc, "1.2.5. Nhóm chức năng Tra cứu, Tìm kiếm và Cảnh báo học vụ")
+    add_p(doc, "Tra cứu và tìm kiếm đa tiêu chí: Cho phép cán bộ quản lý và giảng viên tra cứu sinh viên hoặc bảng điểm theo tổ hợp nhiều điều kiện: Mã sinh viên, Họ và tên, Lớp chuyên ngành, Môn học, Học kỳ, Trạng thái bảng điểm (Nháp / Chờ duyệt / Đã công bố) và khoảng điểm tổng kết.", bullet=True)
+    add_p(doc, "Tự động nhận diện và Cảnh báo học vụ: Căn cứ Điều 15 Quy chế đào tạo tín chỉ UTC, hệ thống tự động tính toán điểm trung bình tích lũy CPA toàn khóa của tất cả sinh viên. Sinh viên có CPA < 1.00 lập tức được đưa vào danh sách 'Cảnh báo học vụ' (Mức 1 hoặc Mức 2 nguy cơ buộc thôi học) với biểu tượng cảnh báo màu đỏ nổi bật trên Dashboard của Ban Giám hiệu và Phòng Đào tạo.", bullet=True)
+    add_p(doc, "In ấn phiếu điểm học kỳ định dạng chuẩn A4: Tích hợp công nghệ CSS @media print cho phép sinh viên và giảng viên in trực tiếp phiếu điểm học kỳ từ trình duyệt web với bố cục chuẩn hóa quốc gia, có quốc hiệu, tiêu ngữ, logo trường UTC và khung ký tên của Trưởng phòng Đào tạo.", bullet=True)
+
+    # 1.3
+    add_heading_2(doc, "1.3. Phân tích yêu cầu phi chức năng và công nghệ áp dụng")
+    
+    add_heading_3(doc, "1.3.1. Yêu cầu tính toàn vẹn dữ liệu và kiểm tra hợp lệ (Validation)")
+    add_p(doc, "Toàn vẹn dữ liệu là yếu tố sống còn đối với một phần mềm quản lý điểm. Hệ thống áp dụng cơ chế xác thực dữ liệu 2 tầng (Dual-layer Validation):")
+    add_p(doc, "Tầng Client-side (Trình duyệt): Sử dụng các thuộc tính ràng buộc của HTML5 (required, min, max, step, pattern) kết hợp mã lệnh JavaScript để kiểm tra tính hợp lệ của dữ liệu ngay khi người dùng thao tác: Không được bỏ trống các trường bắt buộc, điểm số phải là số thực từ 0.0 đến 10.0, ngày sinh đúng định dạng yyyy-MM-dd. Điều này giúp giảm tải cho máy chủ và tăng trải nghiệm người dùng.", bullet=True)
+    add_p(doc, "Tầng Server-side (Java Servlet): Đây là tầng kiểm tra bắt buộc nhằm ngăn chặn các hành vi cố tình vượt qua lớp kiểm tra phía trình duyệt. Servlet thực hiện parse kiểu dữ liệu, kiểm tra tính hợp lệ của logic nghiệp vụ (ví dụ: tổng tỷ lệ phần trăm môn học phải đúng 100%, mã sinh viên không được trùng lặp trong cơ sở dữ liệu).", bullet=True)
+    add_p(doc, "Ràng buộc mức CSDL (Database Constraints): Thiết lập đầy đủ các khóa chính (PRIMARY KEY), khóa ngoại (FOREIGN KEY) với tùy chọn ON DELETE RESTRICT (ngăn chặn xóa học phần nếu đã có dữ liệu điểm thi), các ràng buộc kiểm tra (CHECK constraints: DIEM_CC BETWEEN 0 AND 10, DIEM_GK BETWEEN 0 AND 10, DIEM_THI BETWEEN 0 AND 10) và ràng buộc UNIQUE trên trường TAI_KHOAN.USERNAME.", bullet=True)
+
+    add_heading_3(doc, "1.3.2. Xử lý ngoại lệ, An toàn giao dịch SQL và Chống lỗ hổng bảo mật")
+    add_p(doc, "Xử lý ngoại lệ toàn diện (Robust Exception Handling): Tất cả các đoạn mã tương tác với cơ sở dữ liệu đều được bao bọc trong các khối lệnh try-catch chuẩn mực:")
+    add_p(doc, "Bắt ngoại lệ SQLException: Ghi log chi tiết lỗi tại máy chủ, đồng thời chuyển hướng người dùng đến trang thông báo lỗi thân thiện, tuyệt đối không làm lộ chuỗi kết nối hoặc thông tin nhạy cảm của CSDL ra màn hình người dùng.", bullet=True)
+    add_p(doc, "Bắt ngoại lệ NumberFormatException: Ngăn chặn lỗi treo hệ thống khi người dùng vô tình nhập ký tự văn bản vào ô điểm số.", bullet=True)
+    add_p(doc, "Quản lý Giao dịch (SQL Transaction Management): Đối với các thao tác ảnh hưởng đến nhiều bản ghi (như import danh sách điểm cả lớp hoặc vừa cập nhật điểm vừa ghi nhật ký LICHSU_SUA_DIEM), hệ thống thiết lập conn.setAutoCommit(false). Toàn bộ thao tác chỉ được xác nhận vĩnh viễn (conn.commit()) khi mọi câu lệnh thành công; nếu có bất kỳ lỗi nào phát sinh, hệ thống lập tức hoàn tác (conn.rollback()) để dữ liệu không bao giờ bị sai lệch cục bộ.", bullet=True)
+    add_p(doc, "Phòng chống các lỗ hổng bảo mật Web phổ biến:", bold_prefix="An toàn thông tin: ")
+    add_p(doc, "Chống tấn công SQL Injection: 100% các câu lệnh truy vấn dữ liệu đều sử dụng PreparedStatement với các tham số truyền vào qua dấu hỏi chấm (?), tuyệt đối không dùng phương pháp cộng chuỗi truy vấn (String Concatenation).", bullet=True)
+    add_p(doc, "Chống tấn công Cross-Site Scripting (XSS): Sử dụng thẻ <c:out value='...' escapeXml='true'/> của thư viện JSTL để mã hóa toàn bộ dữ liệu người dùng trước khi hiển thị ra trang web.", bullet=True)
+    add_p(doc, "Bảo vệ mật khẩu người dùng: Mật khẩu được băm một chiều bằng thuật toán BCrypt kết hợp Salt ngẫu nhiên, đảm bảo ngay cả khi cơ sở dữ liệu bị lộ lọt thì mật khẩu gốc vẫn không thể bị giải mã.", bullet=True)
+
+    add_heading_3(doc, "1.3.3. Công nghệ sử dụng: Java Web MVC, Oracle DB 23ai, Apache POI")
+    add_p(doc, "Căn cứ vào yêu cầu kỹ thuật và tính chất doanh nghiệp của bài toán Quản lý điểm UTC, hệ thống được xây dựng trên nền tảng công nghệ chuyên nghiệp:")
+    add_p(doc, "Ngôn ngữ lập trình: Java (JDK 17 LTS / JDK 21 LTS), sử dụng các tính năng hiện đại như Record types, Switch expressions, Try-with-resources.", bullet=True)
+    add_p(doc, "Nền tảng ứng dụng: Java Web Servlet (Jakarta / Java EE Servlet 4.0/5.0), JavaServer Pages (JSP 2.3), Java Standard Tag Library (JSTL 1.2), tuân thủ mô hình thiết kế kiến trúc MVC (Model - View - Controller).", bullet=True)
+    add_p(doc, "Máy chủ ứng dụng (Web Application Server): Apache Tomcat 9.0 / 10.1, đảm bảo hiệu năng xử lý đồng thời hàng ngàn yêu cầu HTTP và hỗ trợ cấu hình phiên làm việc an toàn.", bullet=True)
+    add_p(doc, "Hệ quản trị cơ sở dữ liệu: Oracle Database 23ai Free (phiên bản Pluggable Database FREEPDB1), cung cấp khả năng xử lý giao dịch dữ liệu lớn (Enterprise-grade RDBMS), hỗ trợ kiểu dữ liệu đa dạng và cơ chế toàn vẹn quan hệ mạnh mẽ.", bullet=True)
+    add_p(doc, "Trình điều khiển kết nối CSDL: Oracle JDBC Thin Driver (ojdbc11.jar), giao tiếp với Oracle Database qua giao thức mạng độc lập tốc độ cao.", bullet=True)
+    add_p(doc, "Thư viện xử lý Excel: Apache POI (bản poi-ooxml 5.2.x), cho phép đọc và ghi dữ liệu bảng tính định dạng Microsoft Excel OpenXML (.xlsx) trực tiếp từ bộ nhớ mà không cần cài đặt phần mềm Office.", bullet=True)
+    add_p(doc, "Giao diện người dùng: Web UI Responsive hiện đại (kết hợp Tailwind CSS và Bootstrap 5), hỗ trợ các hiệu ứng trực quan, bảng dữ liệu linh hoạt và hộp thoại xác nhận modal chuyên nghiệp.", bullet=True)
+
+    # End of Chapter 1 -> Page Break
     doc.add_page_break()
 
-    # =========================================================================
-    # CHƯƠNG 3: THIẾT KẾ CƠ SỞ DỮ LIỆU ORACLE 23ai
-    # =========================================================================
-    h_c3 = doc.add_paragraph()
-    h_c3.paragraph_format.space_before = Pt(6)
-    h_c3.paragraph_format.space_after = Pt(8)
-    r = h_c3.add_run("CHƯƠNG 3: THIẾT KẾ CƠ SỞ DỮ LIỆU TRÊN ORACLE DATABASE 23ai")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(14)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+print("Appended Chapter 1 successfully.")
 
-    # 3.1
-    h_31 = doc.add_paragraph()
-    h_31.paragraph_format.space_before = Pt(6)
-    h_31.paragraph_format.space_after = Pt(4)
-    r = h_31.add_run("3.1. Sơ đồ thực thể liên kết (ERD 11 bảng thực thể chuẩn hóa)")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+def build_chapter_2(doc):
+    # CHƯƠNG 2
+    add_heading_1(doc, "CHƯƠNG 2: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG")
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Cơ sở dữ liệu của hệ thống được thiết kế đạt chuẩn chuẩn hóa dạng 3 (3NF), gồm 11 bảng thực thể logic "
-        "đảm bảo triệt tiêu hoàn toàn hiện tượng dư thừa dữ liệu (Data Redundancy) và dị thường khi thêm, xóa, sửa (Anomalies) [4]. "
-        "Sơ đồ quan hệ tổng thể giữa 11 bảng được mô hình hóa như sau:"
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
+    add_callout(doc, "TỔNG QUAN NỘI DUNG CHƯƠNG 2", [
+        "Chương 2 trình bày chi tiết thiết kế kỹ thuật của hệ thống Quản lý điểm UTC trên hai phương diện cốt lõi:",
+        "1. Thiết kế Cơ sở dữ liệu: Lược đồ quan hệ thực thể (ERD) tổng thể và bảng từ điển dữ liệu (Data Dictionary) chi tiết của các bảng trong CSDL Oracle Database 23ai.",
+        "2. Thiết kế Kiến trúc phần mềm: Phân tích mô hình kiến trúc 3 tầng MVC (Model - View - Controller), chu trình xử lý Request/Response qua Servlet Controller và cấu trúc phân rã các package mã nguồn."
+    ])
+
+    # 2.1
+    add_heading_2(doc, "2.1. Thiết kế cơ sở dữ liệu")
+    
+    add_heading_3(doc, "2.1.1. Lược đồ quan hệ thực thể (ERD) hệ thống Oracle Database 23ai")
+    add_p(doc, "Cơ sở dữ liệu của Hệ thống Quản lý điểm UTC được triển khai trên hệ quản trị cơ sở dữ liệu doanh nghiệp Oracle Database 23ai Free. Toàn bộ lược đồ dữ liệu được thiết kế đạt chuẩn chuẩn hóa bậc 3 (3NF - Third Normal Form), loại bỏ triệt để hiện tượng dư thừa dữ liệu và đảm bảo tính toàn vẹn tham chiếu nghiêm ngặt.")
 
     erd_ascii = """+-------------+        +-------------+        +--------------------+
 |    KHOA     | 1    n |    NGANH    | 1    n | LOP_CHUYEN_NGANH   |
@@ -756,368 +727,283 @@ def build_report():
        |                 +--------------------+
        +---------------> |     HOC_KY         |
                          +--------------------+"""
-    add_code_block(doc, erd_ascii, "Hình 3.1: Sơ đồ liên kết thực thể (Entity Relationship Diagram - ERD) 11 bảng")
+    add_diagram_box(doc, erd_ascii, "Lược đồ Quan hệ Thực thể (ERD) Hệ thống Quản lý Điểm UTC")
 
-    # 3.2
-    h_32 = doc.add_paragraph()
-    h_32.paragraph_format.space_before = Pt(6)
-    h_32.paragraph_format.space_after = Pt(4)
-    r = h_32.add_run("3.2. Từ điển dữ liệu chi tiết (Data Dictionary)")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    add_p(doc, "Phân tích các mối quan hệ quan trọng trong lược đồ:", bold_prefix="Mối quan hệ dữ liệu: ")
+    add_p(doc, "Quan hệ KHOA - NGANH - LOP_CHUYEN_NGANH - SINH_VIEN (1 - n): Thể hiện cơ cấu tổ chức phân cấp học thuật tại Trường ĐH Giao thông Vận tải. Mỗi Khoa quản lý nhiều Ngành học; mỗi Ngành quản lý nhiều Lớp chuyên ngành sinh hoạt (ví dụ: Công nghệ Thông tin 1 - K62); mỗi Lớp chuyên ngành bao gồm nhiều Sinh viên.", bullet=True)
+    add_p(doc, "Quan hệ TAI_KHOAN - SINH_VIEN / GIANG_VIEN (1 - 1): Mỗi người dùng trong hệ thống (Sinh viên hoặc Giảng viên) liên kết chính xác với một tài khoản định danh trong bảng TAI_KHOAN để thực hiện xác thực và phân quyền RBAC.", bullet=True)
+    add_p(doc, "Quan hệ LOP_HOC_PHAN - MON_HOC, HOC_KY, GIANG_VIEN (n - 1): Lớp học phần là thực thể tổ chức giảng dạy trong kỳ. Mỗi lớp học phần thuộc về một môn học cụ thể, được mở trong một học kỳ xác định và do một giảng viên trực tiếp phụ trách.", bullet=True)
+    add_p(doc, "Quan hệ kết hợp SINH_VIEN - LOP_HOC_PHAN qua BANG_DIEM (n - n): Một sinh viên có thể đăng ký học nhiều lớp học phần; một lớp học phần có nhiều sinh viên theo học. Bảng BANG_DIEM đóng vai trò là thực thể kết hợp (Associative Entity) lưu trữ kết quả học tập chi tiết của từng sinh viên trong lớp học phần đó.", bullet=True)
+    add_p(doc, "Quan hệ BANG_DIEM - LICHSU_SUA_DIEM (1 - n): Mỗi bản ghi điểm của sinh viên có thể có nhiều bản ghi lịch sử điều chỉnh nếu có sự thay đổi sau khi điểm đã được phê duyệt công bố.", bullet=True)
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Dưới đây là đặc tả chi tiết cấu trúc các bảng trọng tâm trong hệ thống khớp 100% với kịch bản CSDL init_db.sql thực tế, "
-        "bao gồm kiểu dữ liệu Oracle Native, độ dài và các ràng buộc toàn vẹn [4]:"
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
+    add_heading_3(doc, "2.1.2. Đặc tả từ điển dữ liệu chi tiết các bảng trong CSDL")
+    add_p(doc, "Dưới đây là bảng đặc tả cấu trúc chi tiết (Data Dictionary) của các bảng cốt lõi trong cơ sở dữ liệu Oracle Database 23ai:")
 
     # Bảng TAI_KHOAN
-    p_b1 = doc.add_paragraph()
-    p_b1.paragraph_format.space_before = Pt(4)
-    p_b1.paragraph_format.space_after = Pt(2)
-    r = p_b1.add_run("a. Bảng TAI_KHOAN (Người dùng và Xác thực hệ thống):")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(12)
-    r.font.bold = True
+    add_p(doc, "Bảng 1: Bảng TAI_KHOAN (Quản lý tài khoản đăng nhập và phân quyền hệ thống)", bold_prefix="Đặc tả CSDL: ")
+    acc_data = [
+        ["Tên trường", "Kiểu dữ liệu", "Khóa", "Ràng buộc", "Mô tả ý nghĩa"],
+        ["USERNAME", "VARCHAR2(50)", "PK", "NOT NULL, UNIQUE", "Tên đăng nhập (Mã SV, Mã GV hoặc admin)"],
+        ["PASSWORD_HASH", "VARCHAR2(255)", "", "NOT NULL", "Mật khẩu người dùng đã băm chuẩn BCrypt"],
+        ["ROLE", "VARCHAR2(20)", "", "NOT NULL", "Vai trò người dùng ('ADMIN', 'GIANG_VIEN', 'SINH_VIEN')"],
+        ["TRANG_THAI", "NUMBER(1)", "", "DEFAULT 1", "Trạng thái tài khoản (1: Kích hoạt, 0: Khóa)"],
+        ["CREATED_AT", "TIMESTAMP", "", "DEFAULT CURRENT_TIMESTAMP", "Thời điểm tạo tài khoản"],
+        ["LAST_LOGIN", "TIMESTAMP", "", "NULL", "Thời điểm đăng nhập thành công gần nhất"]
+    ]
+    t_acc = doc.add_table(rows=len(acc_data), cols=5)
+    for r_i, r_data in enumerate(acc_data):
+        for c_i, c_val in enumerate(r_data):
+            t_acc.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_acc, [Cm(3.2), Cm(2.8), Cm(1.4), Cm(3.2), Cm(5.4)],
+                 [WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT])
 
-    t_tk = doc.add_table(rows=9, cols=5)
-    t_widths = [Cm(3.0), Cm(3.0), Cm(2.2), Cm(3.3), Cm(4.5)]
-    format_table(t_tk, t_widths, 
-        ["Tên cột", "Kiểu dữ liệu", "Null/Not", "Ràng buộc", "Mô tả ý nghĩa"],
-        [
-            ["ID", "NUMBER", "NOT NULL", "PK, IDENTITY", "Mã tài khoản tự tăng tự động"],
-            ["TEN_DANG_NHAP", "VARCHAR2(50)", "NOT NULL", "UNIQUE", "Tên đăng nhập (admin, mã GV, mã SV)"],
-            ["MAT_KHAU", "VARCHAR2(255)", "NOT NULL", "", "Mật khẩu người dùng"],
-            ["VAI_TRO", "VARCHAR2(20)", "NOT NULL", "CHECK IN(...)", "Vai trò: ADMIN, GIANG_VIEN, SINH_VIEN"],
-            ["HO_TEN", "NVARCHAR2(100)", "NOT NULL", "", "Họ và tên đầy đủ người dùng có dấu"],
-            ["EMAIL", "VARCHAR2(100)", "NULL", "", "Hộp thư điện tử liên hệ"],
-            ["SO_DIEN_THOAI", "VARCHAR2(20)", "NULL", "", "Số điện thoại liên hệ"],
-            ["TRANG_THAI", "NUMBER(1)", "DEFAULT 1", "CHECK (0,1)", "Trạng thái: 1 = Hoạt động, 0 = Bị khóa"]
-        ]
-    )
+    # Bảng SINH_VIEN
+    add_p(doc, "Bảng 2: Bảng SINH_VIEN (Quản lý hồ sơ học vụ sinh viên)", bold_prefix="Đặc tả CSDL: ")
+    sv_data = [
+        ["Tên trường", "Kiểu dữ liệu", "Khóa", "Ràng buộc", "Mô tả ý nghĩa"],
+        ["MA_SV", "VARCHAR2(20)", "PK", "NOT NULL", "Mã số sinh viên UTC (ví dụ: '211200001')"],
+        ["HO_TEN", "VARCHAR2(100)", "", "NOT NULL", "Họ và tên đầy đủ của sinh viên"],
+        ["NGAY_SINH", "DATE", "", "NOT NULL", "Ngày tháng năm sinh"],
+        ["GIOI_TINH", "VARCHAR2(10)", "", "CHECK ('Nam', 'Nu')", "Giới tính sinh viên"],
+        ["EMAIL", "VARCHAR2(100)", "", "NULL", "Email liên lạc của sinh viên"],
+        ["SO_DIEN_THOAI", "VARCHAR2(15)", "", "NULL", "Số điện thoại di động"],
+        ["QUE_QUAN", "VARCHAR2(200)", "", "NULL", "Tỉnh / Thành phố quê quán"],
+        ["MA_LOP_CN", "VARCHAR2(20)", "FK", "REFERENCES LOP_CHUYEN_NGANH", "Mã lớp quản lý chuyên ngành trực thuộc"],
+        ["USERNAME", "VARCHAR2(50)", "FK", "REFERENCES TAI_KHOAN", "Liên kết tài khoản đăng nhập của sinh viên"]
+    ]
+    t_sv = doc.add_table(rows=len(sv_data), cols=5)
+    for r_i, r_data in enumerate(sv_data):
+        for c_i, c_val in enumerate(r_data):
+            t_sv.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_sv, [Cm(2.8), Cm(2.6), Cm(1.2), Cm(4.0), Cm(5.4)],
+                 [WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT])
+
+    # Bảng GIANG_VIEN
+    add_p(doc, "Bảng 3: Bảng GIANG_VIEN (Quản lý thông tin cán bộ giảng dạy)", bold_prefix="Đặc tả CSDL: ")
+    gv_data = [
+        ["Tên trường", "Kiểu dữ liệu", "Khóa", "Ràng buộc", "Mô tả ý nghĩa"],
+        ["MA_GV", "VARCHAR2(20)", "PK", "NOT NULL", "Mã giảng viên (ví dụ: 'gv_nguyenvanan')"],
+        ["HO_TEN", "VARCHAR2(100)", "", "NOT NULL", "Họ và tên giảng viên"],
+        ["EMAIL", "VARCHAR2(100)", "", "NOT NULL", "Email công vụ giảng viên"],
+        ["SO_DIEN_THOAI", "VARCHAR2(15)", "", "NULL", "Số điện thoại liên lạc"],
+        ["HOC_VI", "VARCHAR2(50)", "", "NULL", "Học vị (Thạc sĩ, Tiến sĩ, PGS.TS,...)"],
+        ["MA_KHOA", "VARCHAR2(20)", "FK", "REFERENCES KHOA", "Khoa chuyên môn trực thuộc"],
+        ["USERNAME", "VARCHAR2(50)", "FK", "REFERENCES TAI_KHOAN", "Liên kết tài khoản đăng nhập"]
+    ]
+    t_gv = doc.add_table(rows=len(gv_data), cols=5)
+    for r_i, r_data in enumerate(gv_data):
+        for c_i, c_val in enumerate(r_data):
+            t_gv.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_gv, [Cm(2.8), Cm(2.6), Cm(1.2), Cm(3.6), Cm(5.8)],
+                 [WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT])
 
     # Bảng MON_HOC
-    p_bm = doc.add_paragraph()
-    p_bm.paragraph_format.space_before = Pt(8)
-    p_bm.paragraph_format.space_after = Pt(2)
-    r = p_bm.add_run("b. Bảng MON_HOC (Danh mục môn học & Cấu hình trọng số điểm):")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(12)
-    r.font.bold = True
+    add_p(doc, "Bảng 4: Bảng MON_HOC (Danh mục học phần và tỷ lệ trọng số điểm)", bold_prefix="Đặc tả CSDL: ")
+    mh_data = [
+        ["Tên trường", "Kiểu dữ liệu", "Khóa", "Ràng buộc", "Mô tả ý nghĩa"],
+        ["MA_MH", "VARCHAR2(20)", "PK", "NOT NULL", "Mã môn học (ví dụ: 'IT101', 'IT102')"],
+        ["TEN_MH", "VARCHAR2(150)", "", "NOT NULL", "Tên môn học (ví dụ: 'Công nghệ Java')"],
+        ["SO_TIN_CHI", "NUMBER(2)", "", "CHECK (> 0)", "Số tín chỉ tích lũy (ví dụ: 3)"],
+        ["TY_LE_CC", "NUMBER(3,2)", "", "DEFAULT 0.10", "Tỷ lệ trọng số điểm chuyên cần (10%)"],
+        ["TY_LE_GK", "NUMBER(3,2)", "", "DEFAULT 0.30", "Tỷ lệ trọng số điểm giữa kỳ (30%)"],
+        ["TY_LE_CK", "NUMBER(3,2)", "", "DEFAULT 0.60", "Tỷ lệ trọng số điểm thi cuối kỳ (60%)"]
+    ]
+    t_mh = doc.add_table(rows=len(mh_data), cols=5)
+    for r_i, r_data in enumerate(mh_data):
+        for c_i, c_val in enumerate(r_data):
+            t_mh.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_mh, [Cm(2.6), Cm(2.6), Cm(1.2), Cm(3.4), Cm(6.2)],
+                 [WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT])
 
-    t_mh = doc.add_table(rows=8, cols=5)
-    format_table(t_mh, t_widths, 
-        ["Tên cột", "Kiểu dữ liệu", "Null/Not", "Ràng buộc", "Mô tả ý nghĩa"],
-        [
-            ["MA_MON", "VARCHAR2(20)", "NOT NULL", "PK", "Mã học phần (Ví dụ: IT101, IT102)"],
-            ["TEN_MON", "NVARCHAR2(100)", "NOT NULL", "", "Tên học phần đầy đủ"],
-            ["SO_TIN_CHI", "NUMBER(2)", "NOT NULL", "CHECK > 0", "Số tín chỉ học phần tích lũy"],
-            ["TY_LE_CC", "NUMBER(4,2)", "DEFAULT 0.10", "CHECK >= 0", "Tỷ lệ % điểm Chuyên cần (Ví dụ: 0.10)"],
-            ["TY_LE_GK", "NUMBER(4,2)", "DEFAULT 0.20", "CHECK >= 0", "Tỷ lệ % điểm Giữa kỳ (Ví dụ: 0.20)"],
-            ["TY_LE_THI", "NUMBER(4,2)", "DEFAULT 0.70", "CHECK >= 0", "Tỷ lệ % điểm Thi kết thúc (Ví dụ: 0.70)"],
-            ["LOAI_MON", "VARCHAR2(20)", "DEFAULT 'TIN_CHI'", "CHECK IN(...)", "Loại môn: TIN_CHI hoặc DIEU_KIEN"]
-        ]
-    )
+    # Bảng LOP_HOC_PHAN
+    add_p(doc, "Bảng 5: Bảng LOP_HOC_PHAN (Lớp học phần mở trong kỳ do Giảng viên phụ trách)", bold_prefix="Đặc tả CSDL: ")
+    lhp_data = [
+        ["Tên trường", "Kiểu dữ liệu", "Khóa", "Ràng buộc", "Mô tả ý nghĩa"],
+        ["MA_LHP", "VARCHAR2(30)", "PK", "NOT NULL", "Mã lớp học phần (ví dụ: 'LHP_IT101_01')"],
+        ["MA_MH", "VARCHAR2(20)", "FK", "REFERENCES MON_HOC", "Môn học giảng dạy"],
+        ["MA_HK", "VARCHAR2(20)", "FK", "REFERENCES HOC_KY", "Học kỳ tổ chức lớp (ví dụ: 'HK1_2024')"],
+        ["MA_GV", "VARCHAR2(20)", "FK", "REFERENCES GIANG_VIEN", "Giảng viên trực tiếp phụ trách vào điểm"],
+        ["TEN_LHP", "VARCHAR2(150)", "", "NOT NULL", "Tên diễn giải lớp học phần"],
+        ["PHONG_HOC", "VARCHAR2(50)", "", "NULL", "Phòng học giảng dạy"],
+        ["SO_LUONG_MAX", "NUMBER(3)", "", "DEFAULT 60", "Số lượng sinh viên tối đa của lớp"],
+        ["TRANG_THAI_DIEM", "VARCHAR2(20)", "", "DEFAULT 'DRAFT'", "Trạng thái nộp điểm ('DRAFT', 'SUBMITTED', 'PUBLISHED')"]
+    ]
+    t_lhp = doc.add_table(rows=len(lhp_data), cols=5)
+    for r_i, r_data in enumerate(lhp_data):
+        for c_i, c_val in enumerate(r_data):
+            t_lhp.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_lhp, [Cm(3.2), Cm(2.6), Cm(1.2), Cm(3.8), Cm(5.2)],
+                 [WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT])
 
     # Bảng BANG_DIEM
-    p_b2 = doc.add_paragraph()
-    p_b2.paragraph_format.space_before = Pt(8)
-    p_b2.paragraph_format.space_after = Pt(2)
-    r = p_b2.add_run("c. Bảng BANG_DIEM (Chi tiết điểm thi và kết quả quy đổi):")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(12)
-    r.font.bold = True
-
-    t_bd = doc.add_table(rows=12, cols=5)
-    format_table(t_bd, t_widths, 
-        ["Tên cột", "Kiểu dữ liệu", "Null/Not", "Ràng buộc", "Mô tả ý nghĩa"],
-        [
-            ["ID", "NUMBER", "NOT NULL", "PK, IDENTITY", "Mã định danh bản ghi điểm"],
-            ["MA_LHP", "VARCHAR2(30)", "NOT NULL", "FK -> LOP_HOC_PHAN", "Khóa ngoại tham chiếu lớp học phần"],
-            ["MA_SV", "VARCHAR2(20)", "NOT NULL", "FK -> SINH_VIEN", "Khóa ngoại tham chiếu sinh viên"],
-            ["DIEM_CC", "NUMBER(4,2)", "NULL", "CHECK 0..10", "Điểm đánh giá chuyên cần (hệ 10)"],
-            ["DIEM_GK", "NUMBER(4,2)", "NULL", "CHECK 0..10", "Điểm kiểm tra giữa kỳ (hệ 10)"],
-            ["DIEM_THI", "NUMBER(4,2)", "NULL", "CHECK 0..10", "Điểm thi kết thúc học phần (hệ 10)"],
-            ["DIEM_TK_10", "NUMBER(4,2)", "NULL", "CHECK 0..10", "Điểm tổng kết thang 10 có trọng số"],
-            ["DIEM_CHU", "VARCHAR2(5)", "NULL", "A+, A, B+... F", "Điểm chữ quy đổi chuẩn UTC"],
-            ["DIEM_THANG_4", "NUMBER(3,2)", "NULL", "0.0 .. 4.0", "Điểm hệ 4 phục vụ tính GPA/CPA"],
-            ["KET_QUA", "VARCHAR2(20)", "NULL", "DAT / KHONG_DAT", "Đánh giá đạt hoặc học lại"],
-            ["GHI_CHU", "NVARCHAR2(255)", "NULL", "", "Ghi chú bổ sung học phần"]
-        ]
-    )
+    add_p(doc, "Bảng 6: Bảng BANG_DIEM (Kết quả học tập chi tiết của sinh viên)", bold_prefix="Đặc tả CSDL: ")
+    bd_data = [
+        ["Tên trường", "Kiểu dữ liệu", "Khóa", "Ràng buộc", "Mô tả ý nghĩa"],
+        ["ID_DIEM", "NUMBER(10)", "PK", "GENERATED ALWAYS AS IDENTITY", "Khóa chính tự tăng nhận diện bản ghi điểm"],
+        ["MA_LHP", "VARCHAR2(30)", "FK", "REFERENCES LOP_HOC_PHAN", "Lớp học phần sinh viên theo học"],
+        ["MA_SV", "VARCHAR2(20)", "FK", "REFERENCES SINH_VIEN", "Sinh viên được chấm điểm (Mã SV)"],
+        ["DIEM_CC", "NUMBER(3,1)", "", "CHECK (BETWEEN 0 AND 10)", "Điểm chuyên cần / quá trình"],
+        ["DIEM_GK", "NUMBER(3,1)", "", "CHECK (BETWEEN 0 AND 10)", "Điểm thi giữa kỳ"],
+        ["DIEM_THI", "NUMBER(3,1)", "", "CHECK (BETWEEN 0 AND 10)", "Điểm thi kết thúc học phần"],
+        ["DIEM_TK_10", "NUMBER(3,1)", "", "NULL", "Điểm tổng kết thang 10 (tính theo trọng số)"],
+        ["DIEM_CHU", "VARCHAR2(5)", "", "NULL", "Điểm chữ theo quy chế UTC (A, B+, B,...)"],
+        ["DIEM_HE_4", "NUMBER(2,1)", "", "NULL", "Điểm quy đổi thang 4 tích lũy CPA/GPA"],
+        ["TRANG_THAI", "VARCHAR2(20)", "", "DEFAULT 'DRAFT'", "Trạng thái bảng điểm cá nhân"]
+    ]
+    t_bd = doc.add_table(rows=len(bd_data), cols=5)
+    for r_i, r_data in enumerate(bd_data):
+        for c_i, c_val in enumerate(r_data):
+            t_bd.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_bd, [Cm(2.6), Cm(2.6), Cm(1.2), Cm(4.2), Cm(5.4)],
+                 [WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT])
 
     # Bảng LICHSU_SUA_DIEM
-    p_b3 = doc.add_paragraph()
-    p_b3.paragraph_format.space_before = Pt(8)
-    p_b3.paragraph_format.space_after = Pt(2)
-    r = p_b3.add_run("d. Bảng LICHSU_SUA_DIEM (Lưu vết kiểm toán - Audit Trail):")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(12)
-    r.font.bold = True
+    add_p(doc, "Bảng 7: Bảng LICHSU_SUA_DIEM (Nhật ký kiểm toán lưu vết sửa đổi điểm thi)", bold_prefix="Đặc tả CSDL: ")
+    log_data = [
+        ["Tên trường", "Kiểu dữ liệu", "Khóa", "Ràng buộc", "Mô tả ý nghĩa"],
+        ["ID_LOG", "NUMBER(10)", "PK", "GENERATED ALWAYS AS IDENTITY", "Khóa chính tự tăng nhận diện bản ghi log"],
+        ["ID_DIEM", "NUMBER(10)", "FK", "REFERENCES BANG_DIEM", "Liên kết bản ghi điểm bị thay đổi"],
+        ["NGUOI_SUA", "VARCHAR2(50)", "", "NOT NULL", "Tên người dùng thực hiện sửa điểm"],
+        ["DIEM_CU_CC", "NUMBER(3,1)", "", "NULL", "Điểm chuyên cần cũ"],
+        ["DIEM_MOI_CC", "NUMBER(3,1)", "", "NULL", "Điểm chuyên cần mới sau điều chỉnh"],
+        ["DIEM_CU_GK", "NUMBER(3,1)", "", "NULL", "Điểm giữa kỳ cũ"],
+        ["DIEM_MOI_GK", "NUMBER(3,1)", "", "NULL", "Điểm giữa kỳ mới sau điều chỉnh"],
+        ["DIEM_CU_THI", "NUMBER(3,1)", "", "NULL", "Điểm thi kết thúc cũ"],
+        ["DIEM_MOI_THI", "NUMBER(3,1)", "", "NULL", "Điểm thi kết thúc mới sau điều chỉnh"],
+        ["LY_DO", "VARCHAR2(500)", "", "NOT NULL", "Lý do sửa đổi điểm thi (bắt buộc nhập)"],
+        ["THOI_GIAN_SUA", "TIMESTAMP", "", "DEFAULT CURRENT_TIMESTAMP", "Thời điểm chính xác diễn ra thao tác sửa"]
+    ]
+    t_log = doc.add_table(rows=len(log_data), cols=5)
+    for r_i, r_data in enumerate(log_data):
+        for c_i, c_val in enumerate(r_data):
+            t_log.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_log, [Cm(2.6), Cm(2.6), Cm(1.2), Cm(3.8), Cm(5.8)],
+                 [WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT])
 
-    t_ls = doc.add_table(rows=8, cols=5)
-    format_table(t_ls, t_widths, 
-        ["Tên cột", "Kiểu dữ liệu", "Null/Not", "Ràng buộc", "Mô tả ý nghĩa"],
-        [
-            ["ID", "NUMBER", "NOT NULL", "PK, IDENTITY", "Mã bản ghi nhật ký tự tăng"],
-            ["BANG_DIEM_ID", "NUMBER", "NOT NULL", "FK -> BANG_DIEM", "Khóa ngoại bản ghi điểm bị thay đổi"],
-            ["NGUOI_SUA", "VARCHAR2(50)", "NOT NULL", "", "Tài khoản thực hiện sửa đổi điểm"],
-            ["THOI_GIAN", "TIMESTAMP", "DEFAULT CURRENT_TIMESTAMP", "", "Thời gian chính xác khi sửa điểm"],
-            ["DIEM_CU", "NVARCHAR2(200)", "NULL", "", "Chuỗi giá trị điểm trước khi sửa"],
-            ["DIEM_MOI", "NVARCHAR2(200)", "NULL", "", "Chuỗi giá trị điểm mới sau khi sửa"],
-            ["LY_DO", "NVARCHAR2(500)", "NOT NULL", "", "Lý do điều chỉnh (Rà soát bài thi, v.v.)"]
-        ]
-    )
+    # 2.2
+    add_heading_2(doc, "2.2. Thiết kế kiến trúc phần mềm")
+    
+    add_heading_3(doc, "2.2.1. Áp dụng mô hình kiến trúc MVC trên nền Java Web Servlet/JSP")
+    add_p(doc, "Hệ thống Quản lý điểm UTC được thiết kế theo mô hình kiến trúc chuẩn doanh nghiệp 3 tầng MVC (Model - View - Controller), mang lại khả năng mở rộng cao, dễ dàng bảo trì và phân định ranh giới trách nhiệm cực kỳ rõ ràng giữa các thành phần:")
+    add_p(doc, "Tầng Model (Mô hình dữ liệu và nghiệp vụ): Bao gồm các lớp JavaBeans thực thể (Entities) đóng gói dữ liệu và các lớp Data Access Objects (DAO). Model chịu trách nhiệm tương tác trực tiếp với Oracle Database thông qua JDBC, thực thi các câu lệnh SQL an toàn và chứa đựng các thuật toán tính toán nghiệp vụ (GradeCalculator).", bullet=True)
+    add_p(doc, "Tầng View (Giao diện hiển thị người dùng): Được xây dựng hoàn toàn bằng các trang JSP (JavaServer Pages) kết hợp thư viện thẻ chuẩn JSTL (Java Standard Tag Library) và EL (Expression Language). Tuyệt đối không nhúng mã lệnh Java Scriptlet (<% ... %>) hay câu lệnh SQL trong View. View chỉ nhận dữ liệu từ Controller thông qua HttpServletRequest attributes để render giao diện HTML/CSS.", bullet=True)
+    add_p(doc, "Tầng Controller (Bộ điều khiển và tiếp nhận yêu cầu): Được hiện thực bởi các Java Servlet kế thừa từ HttpServlet. Servlet đóng vai trò là 'nhạc trưởng': Tiếp nhận HTTP Request (GET/POST) từ trình duyệt máy khách, trích xuất tham số, gọi các phương thức tương ứng của tầng Service hoặc DAO để xử lý dữ liệu, sau đó lưu kết quả vào Model và điều phối luồng hiển thị (Forwarding sang View JSP hoặc Redirect sang URL khác).", bullet=True)
 
-    # 3.3
-    h_33 = doc.add_paragraph()
-    h_33.paragraph_format.space_before = Pt(6)
-    h_33.paragraph_format.space_after = Pt(4)
-    r = h_33.add_run("3.3. Các kỹ thuật tối ưu hóa và đảm bảo an toàn dữ liệu trên Oracle 23ai")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    add_heading_3(doc, "2.2.2. Sơ đồ chu trình xử lý Request/Response và Nhiệm vụ các Package")
+    mvc_ascii = """+-------------------------------------------------------------------------------------------------+
+|               KIẾN TRÚC MÔ HÌNH PHÂN LỚP MVC JAVA WEB SERVLET & ORACLE DB 23AI                  |
++-------------------------------------------------------------------------------------------------+
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Nhóm phát triển đã khai thác các tính năng thế mạnh của Oracle Database 23ai nhằm tối đa hóa hiệu năng và độ tin cậy [4], [5]:\n"
-        "1. Cơ chế Ràng buộc toàn vẹn cứng (Integrity CHECK Constraints): Toàn bộ các cột điểm số đều được cài đặt ràng buộc cứng "
-        "`CHECK (DIEM >= 0.0 AND DIEM <= 10.0)`. Dữ liệu nhập sai từ client hoặc tệp Excel sẽ bị từ chối ngay lập tức tại tầng động cơ CSDL, "
-        "bảo vệ an toàn dữ liệu tuyệt đối ngay cả khi có lỗi logic ứng dụng.\n"
-        "2. Tối ưu bộ nhớ đệm thực thi với PreparedStatement: 100% các câu truy vấn JDBC trong các lớp DAO đều sử dụng PreparedStatement. "
-        "Kỹ thuật này giúp Oracle 23ai tái sử dụng Execution Plan đã biên dịch trong Shared Pool (Soft Parse), "
-        "giảm tải CPU máy chủ cơ sở dữ liệu và ngăn chặn hoàn toàn nguy cơ tấn công SQL Injection.\n"
-        "3. Ràng buộc UNIQUE kết hợp (MA_LHP, MA_SV): Ngăn chặn triệt để tình trạng một sinh viên bị ghi điểm trùng lặp trong cùng một lớp học phần.\n"
-        "4. Tối ưu báo cáo phổ điểm bằng Group By đơn truy vấn: Thay vì truy vấn lặp từng sinh viên trong vòng lặp Java, StatisticsDAO "
-        "sử dụng câu lệnh tổng hợp Oracle `COUNT(CASE WHEN ...)` để kết xuất tức thời số lượng sinh viên đạt A+, A, B+, B, C, D, F chỉ với 1 lượt quét bảng."
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
+   [ WEB BROWSER ] (Client HTML5 / Tailwind CSS / Bootstrap 5 / JavaScript)
+          |
+     (1) HTTP Request (GET / POST)
+          v
+   [ javax.servlet.Filter ] (EncodingFilter: UTF-8  |  AuthFilter: Kiểm tra Session & Phân quyền RBAC)
+          |
+     (2) Request hợp lệ được chuyển tiếp
+          v
+   [ TẦNG CONTROLLER ] (Java Servlets)
+     - vn.edu.utc.grade.controller.AuthServlet (Xác thực đăng nhập, Đổi mật khẩu)
+     - vn.edu.utc.grade.controller.admin.*     (Dashboard, Quản lý SV, GV, LHP, Môn học, Duyệt điểm)
+     - vn.edu.utc.grade.controller.lecturer.*  (Xem lớp phân công, Nhập điểm, Import/Export Excel)
+     - vn.edu.utc.grade.controller.student.*   (Tra cứu điểm, GPA/CPA, In phiếu điểm A4)
+          |
+     (3) Gọi xử lý nghiệp vụ                (6) Đẩy dữ liệu vào Request Attribute
+          v                                      và chuyển tiếp Forwarding
+   [ TẦNG SERVICE & DAO ]                        v
+     - GradeCalculator, ExcelService (Apache POI) [ TẦNG VIEW ] (JSP + JSTL 1.2 + EL)
+     - GradeDAO, StudentDAO, UserDAO, CourseClassDAO -> WebContent/WEB-INF/views/
+          |                                               |
+     (4) JDBC PreparedStatement (ojdbc11)                 | (7) Trả về trang Web hoàn chỉnh
+          v                                               v
+   [ ORACLE DATABASE 23ai ] (PDB FREEPDB1)          [ WEB BROWSER CLIENT ]
++-------------------------------------------------------------------------------------------------+"""
+    add_diagram_box(doc, mvc_ascii, "Sơ đồ Kiến trúc Chu trình Xử lý Request - Response MVC")
 
+    add_p(doc, "Phân định chi tiết vai trò của từng Package mã nguồn trong dự án:", bold_prefix="Cấu trúc Package: ")
+    add_p(doc, "vn.edu.utc.grade.config: Chứa các lớp cấu hình hệ thống và bộ lọc toàn cục: DBConnection quản lý nạp thông số chuỗi kết nối từ db.properties và cấp phát Connection; AuthFilter kiểm soát quyền truy cập URL theo vai trò người dùng trong Session; EncodingFilter ép toàn bộ request/response về bộ mã UTF-8.", bullet=True)
+    add_p(doc, "vn.edu.utc.grade.model.*: Chứa các đối tượng thực thể JavaBeans chia thành 3 nhóm: academic (ClassRoom, CourseClass, Faculty, Major, Semester, Subject), account (User, Student, Lecturer), grading (Grade, AuditLog). Mỗi lớp đều có trường private, constructor và getter/setter chuẩn mực.", bullet=True)
+    add_p(doc, "vn.edu.utc.grade.dao.*: Chứa các lớp Data Access Object chuyên biệt phụ trách truy vấn dữ liệu từ Oracle CSDL: academic.* (FacultyDAO, MajorDAO, ClassRoomDAO, SubjectDAO, CourseClassDAO, SemesterDAO), account.* (UserDAO, StudentDAO, LecturerDAO), grading.* (GradeDAO, AuditLogDAO, StatisticsDAO).", bullet=True)
+    add_p(doc, "vn.edu.utc.grade.controller.*: Chứa các Servlet điều phối luồng ứng dụng được phân quyền rõ ràng theo thư mục admin/, lecturer/, student/ và auth/.", bullet=True)
+    add_p(doc, "vn.edu.utc.grade.service: Chứa các dịch vụ nghiệp vụ dùng chung: GradeCalculator xử lý các thuật toán tính toán và quy đổi thang điểm UTC; ExcelService sử dụng Apache POI để import/export bảng điểm định dạng .xlsx.", bullet=True)
+    add_p(doc, "src/main/webapp/WEB-INF/views: Chứa toàn bộ các tệp giao diện JSP. Thư mục này được đặt trong WEB-INF nhằm ngăn chặn tuyệt đối việc người dùng truy cập trực tiếp file giao diện bằng đường dẫn URL trên thanh địa chỉ của trình duyệt mà bắt buộc phải đi qua Servlet Controller.", bullet=True)
+
+    # End of Chapter 2 -> Page Break
     doc.add_page_break()
 
-    # =========================================================================
-    # CHƯƠNG 4: KIẾN TRÚC HỆ THỐNG VÀ CÀI ĐẶT MÃ NGUỒN
-    # =========================================================================
-    h_c4 = doc.add_paragraph()
-    h_c4.paragraph_format.space_before = Pt(6)
-    h_c4.paragraph_format.space_after = Pt(8)
-    r = h_c4.add_run("CHƯƠNG 4: KIẾN TRÚC HỆ THỐNG VÀ HIỆN THỰC HÓA MÃ NGUỒN CÔNG NGHỆ JAVA")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(14)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+print("Appended Chapter 2 successfully.")
 
-    # 4.1
-    h_41 = doc.add_paragraph()
-    h_41.paragraph_format.space_before = Pt(6)
-    h_41.paragraph_format.space_after = Pt(4)
-    r = h_41.add_run("4.1. Kiến trúc phân tầng 3-Tier kết hợp mô hình MVC và RBAC Filter")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+def build_chapter_3(doc):
+    # CHƯƠNG 3
+    add_heading_1(doc, "CHƯƠNG 3: TRIỂN KHAI XÂY DỰNG CHƯƠNG TRÌNH")
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Hệ thống được thiết kế theo Mô hình 3 tầng (3-Tier Architecture) kết hợp kiến trúc MVC (Model - View - Controller), "
-        "đảm bảo tính tách biệt tuyệt đối giữa tầng hiển thị giao diện, tầng xử lý quy tắc nghiệp vụ và tầng lưu trữ dữ liệu bền vững [11], [12]:"
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
+    add_callout(doc, "TỔNG QUAN NỘI DUNG CHƯƠNG 3", [
+        "Chương 3 trình bày chi tiết việc hiện thực hóa các thiết kế vào trong mã nguồn dự án thực tế:",
+        "1. Cấu trúc Project chuẩn Maven trên môi trường phát triển IDE (Eclipse / IntelliJ IDEA).",
+        "2. Triển khai lớp kết nối DBConnection, giải phóng tài nguyên an toàn và sử dụng PreparedStatement phòng chống SQL Injection.",
+        "3. Triển khai thuật toán tính điểm và quy đổi thang điểm UTC trong GradeCalculator và xử lý Excel bằng Apache POI trong ExcelService.",
+        "4. Tuân thủ nghiêm ngặt các quy chuẩn lập trình Java (Coding Conventions) và nguyên tắc tách biệt trách nhiệm (Separation of Concerns)."
+    ])
 
-    arch_ascii = """+---------------------------------------------------------------------------------------+
-| 1. TẦNG TRÌNH DIỄN (PRESENTATION TIER / VIEW):                                        |
-|    - JSP (JavaServer Pages 2.3), JSTL Core & Formatting Tags (c:if, c:forEach)        |
-|    - Tailwind CSS, JavaScript ES6, Font Awesome 6 Icons                               |
-|    - Cửa sổ in phiếu điểm chuẩn khổ A4 (Print Stylesheet tiêu chuẩn UTC)              |
-+---------------------------------------------------------------------------------------+
-                                           ^
-                                           | HTTP Request / Response (Mã hóa UTF-8)
-                                           v
-+---------------------------------------------------------------------------------------+
-| 2. TẦNG ĐIỀU KHIỂN & NGHIỆP VỤ (CONTROLLER & BUSINESS LOGIC TIER):                    |
-|    - Filters: EncodingFilter (UTF-8 tiếng Việt), AuthFilter (RBAC & Cache-Control)    |
-|    - Servlets (Controllers):                                                          |
-|      + AuthServlet: Xác thực đăng nhập, đăng xuất, đổi mật khẩu                       |
-|      + LecturerServlet: Quản lý lớp, sổ điểm điện tử, Import/Export Excel             |
-|      + StudentServlet: Xem bảng điểm, tính GPA/CPA, in phiếu điểm                     |
-|      + Admin: AdminDashboardServlet, GradeApprovalServlet, AcademicClassServlet...    |
-|    - Business Services:                                                               |
-|      + GradeCalculator: Bộ máy tính điểm TK10, quy đổi Điểm chữ, Thang 4, GPA/CPA    |
-|      + ExcelService: Xử lý tệp bảng tính Excel bằng thư viện Apache POI (poi-ooxml)   |
-+---------------------------------------------------------------------------------------+
-                                           ^
-                                           | Truy xuất đối tượng DTO / POJO Entities
-                                           v
-+---------------------------------------------------------------------------------------+
-| 3. TẦNG TRUY XUẤT DỮ LIỆU (DATA ACCESS TIER / PERSISTENCE LAYER):                     |
-|    - DBConnection: Quản lý nạp cấu hình từ db.properties & cấp phát Connection        |
-|    - Data Access Objects (DAOs):                                                      |
-|      + account: UserDAO, StudentDAO, LecturerDAO                                      |
-|      + academic: SubjectDAO, CourseClassDAO, AcademicClassDAO, FacultyDAO, SemesterDAO|
-|      + grading: GradeDAO, StatisticsDAO, AuditLogDAO                                  |
-|    - Hệ quản trị CSDL: Oracle Database 23ai Free (Localhost:1521/FREEPDB1)            |
-+---------------------------------------------------------------------------------------+"""
-    add_code_block(doc, arch_ascii, "Hình 4.1: Sơ đồ kiến trúc 3-Tier kết hợp MVC và luồng xử lý ứng dụng")
+    # 3.1
+    add_heading_2(doc, "3.1. Cấu trúc Project")
+    add_p(doc, "Dự án được khởi tạo và quản lý phụ thuộc theo tiêu chuẩn Apache Maven (chuẩn Dynamic Web Project). Dưới đây là cây thư mục thực tế của dự án trên môi trường phát triển IDE:")
 
-    # 4.2
-    h_42 = doc.add_paragraph()
-    h_42.paragraph_format.space_before = Pt(6)
-    h_42.paragraph_format.space_after = Pt(4)
-    r = h_42.add_run("4.2. Cấu trúc thư mục Apache Maven chuẩn hóa theo nhóm nghiệp vụ")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Mã nguồn được tổ chức theo chuẩn cấu trúc dự án doanh nghiệp Apache Maven [8], phân tách rõ ràng theo từng Domain nghiệp vụ "
-        "(account, academic, grading) giúp việc bảo trì (Maintainability) và mở rộng (Scalability) đạt hiệu quả cao nhất:"
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-
-    maven_ascii = """quan-ly-diem-utc/
-├── pom.xml                                       # Khai báo Maven dependencies (ojdbc11, POI, Tomcat)
+    tree_ascii = """quan-ly-diem-utc/
+├── pom.xml                                  [File cấu hình phụ thuộc Maven: Servlet, POI, BCrypt, Oracle JDBC]
 ├── database/
-│   └── init_db.sql                               # Kịch bản DDL 11 bảng Oracle 23ai & Dữ liệu mẫu UTC
-└── src/main/
-    ├── resources/
-    │   └── db.properties                         # Tham số kết nối Oracle 23ai (URL, user, password)
-    ├── java/vn/edu/utc/grade/
-    │   ├── Main.java                             # Trình khởi chạy nhúng Embedded Tomcat độc lập
-    │   ├── config/                               # Tầng cấu hình & Bảo mật
-    │   │   ├── DBConnection.java                 # Quản lý nạp kết nối JDBC Oracle
-    │   │   ├── AuthFilter.java                   # Bộ lọc xác thực và phân quyền RBAC
-    │   │   └── EncodingFilter.java               # Bộ lọc mã hóa ký tự UTF-8
-    │   ├── controller/                           # Tầng điều khiển Servlets (MVC)
-    │   │   ├── AuthServlet.java                  # Đăng nhập, đăng xuất, đổi mật khẩu
-    │   │   ├── lecturer/LecturerServlet.java     # Lớp giảng dạy, vào điểm, nhập/xuất Excel
-    │   │   ├── student/StudentServlet.java       # Xem bảng điểm, GPA/CPA, in bảng điểm A4
-    │   │   └── admin/                            # Nhóm Servlets quản trị đào tạo
-    │   │       ├── AdminDashboardServlet.java    # Bảng điều khiển thống kê tổng quan
-    │   │       ├── GradeApprovalServlet.java     # Phê duyệt & Công bố bảng điểm học phần
-    │   │       ├── AcademicManageServlet.java    # Quản lý môn học, lớp học phần
-    │   │       ├── AcademicClassServlet.java     # Quản lý lớp chuyên ngành & sinh viên
-    │   │       ├── FacultyGradeServlet.java      # Điểm học phần theo Khoa & Lớp
-    │   │       ├── UserManageServlet.java        # Quản lý người dùng hệ thống
-    │   │       └── AuditLogServlet.java          # Tra cứu lịch sử sửa đổi điểm
-    │   ├── service/                              # Tầng nghiệp vụ xử lý tính toán
-    │   │   ├── GradeCalculator.java              # Thuật toán tính điểm TK, quy đổi chữ/hệ 4, GPA/CPA
-    │   │   └── ExcelService.java                 # Đọc và kết xuất file Excel chuẩn bằng Apache POI
-    │   ├── dao/                                  # Tầng truy xuất CSDL (JDBC PreparedStatement)
-    │   │   ├── account/ (UserDAO, StudentDAO, LecturerDAO)
-    │   │   ├── academic/ (SubjectDAO, CourseClassDAO, AcademicClassDAO, FacultyDAO, SemesterDAO)
-    │   │   └── grading/ (GradeDAO, StatisticsDAO, AuditLogDAO)
-    │   └── model/                                # Tầng thực thể dữ liệu (POJO)
-    │       ├── account/ (User, Student, Lecturer)
-    │       ├── academic/ (Subject, CourseClass, AcademicClass, Semester, Faculty)
-    │       └── grading/ (Grade, AuditLog)
-    └── webapp/
-        ├── index.jsp                             # Trang cổng thông tin đăng nhập
-        └── WEB-INF/
-            ├── web.xml                           # Cấu hình Servlet Mapping & Filter
-            └── views/                            # Giao diện JSP (auth, student, lecturer, admin)"""
-    add_code_block(doc, maven_ascii, "Hình 4.2: Cấu trúc cây thư mục dự án chuẩn hóa theo chuẩn Apache Maven")
+│   └── init_db.sql                          [Kịch bản SQL DDL tạo 11 bảng CSDL và nạp dữ liệu mẫu ban đầu]
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── vn/edu/utc/grade/
+│   │   │       ├── Main.java                [Lớp khởi chạy nhúng Embedded Tomcat phục vụ chạy độc lập]
+│   │   │       ├── config/
+│   │   │       │   ├── DBConnection.java    [Quản lý kết nối Oracle JDBC qua db.properties & giải phóng tài nguyên]
+│   │   │       │   ├── AuthFilter.java      [Bộ lọc kiểm soát xác thực phiên & phân quyền RBAC theo URL]
+│   │   │       │   └── EncodingFilter.java  [Bộ lọc đồng bộ hóa bộ mã ký tự tiếng Việt UTF-8]
+│   │   │       ├── controller/
+│   │   │       │   ├── AuthServlet.java     [Xử lý đăng nhập, đăng xuất, đổi mật khẩu]
+│   │   │       │   ├── admin/               [Các Servlet quản trị: Dashboard, Sinh viên, GV, Môn, Duyệt điểm, Audit]
+│   │   │       │   ├── lecturer/            [Các Servlet giảng viên: Xem lớp dạy, Nhập điểm, Import/Export Excel]
+│   │   │       │   └── student/             [Các Servlet sinh viên: Tra cứu bảng điểm, xem CPA/GPA, in phiếu A4]
+│   │   │       ├── dao/
+│   │   │       │   ├── academic/            [DAO truy xuất Khoa, Ngành, Lớp CN, Môn học, Lớp HP, Học kỳ]
+│   │   │       │   ├── account/             [DAO truy xuất Tài khoản, Hồ sơ Sinh viên, Hồ sơ Giảng viên]
+│   │   │       │   └── grading/             [DAO xử lý Bảng điểm, Thống kê phổ điểm, Nhật ký AuditLog]
+│   │   │       ├── model/
+│   │   │       │   ├── academic/            [JavaBeans: ClassRoom, CourseClass, Faculty, Major, Semester, Subject]
+│   │   │       │   ├── account/             [JavaBeans: User, Student, Lecturer]
+│   │   │       │   └── grading/             [JavaBeans: Grade, AuditLog]
+│   │   │       └── service/
+│   │   │           ├── GradeCalculator.java [Thuật toán tính điểm TK10, điểm liệt, điểm chữ, thang điểm 4 UTC]
+│   │   │           └── ExcelService.java    [Dịch vụ xử lý đọc/ghi file Excel .xlsx qua Apache POI]
+│   │   ├── resources/
+│   │   │   └── db.properties                [File cấu hình URL, user, pass, driver kết nối Oracle DB]
+│   │   └── webapp/
+│   │       ├── assets/images/               [Tài nguyên hình ảnh tĩnh: utc-logo.png, utc-campus.jpg]
+│   │       └── WEB-INF/
+│   │           ├── web.xml                  [Cấu hình Deployment Descriptor, Servlet Mappings, Filters]
+│   │           └── views/                   [Thư mục chứa toàn bộ giao diện JSP bảo mật]
+│   │               ├── auth/                [login.jsp, change-password.jsp]
+│   │               ├── admin/               [dashboard.jsp, classes.jsp, subjects.jsp, grade-approval.jsp, ...]
+│   │               ├── lecturer/            [my-classes.jsp, grade-input.jsp]
+│   │               ├── student/             [my-grades.jsp, transcript-print.jsp]
+│   │               └── common/              [header.jsp, footer.jsp, sidebar.jsp]
+└── docs/sample-excel/                       [Các tệp Excel mẫu kiểm thử nạp điểm chuẩn UTC]"""
+    add_diagram_box(doc, tree_ascii, "Cây Cấu trúc Thư mục Dự án trên Môi trường Phát triển IDE")
 
-    # 4.3
-    h_43 = doc.add_paragraph()
-    h_43.paragraph_format.space_before = Pt(6)
-    h_43.paragraph_format.space_after = Pt(4)
-    r = h_43.add_run("4.3. Cài đặt các module và giải thuật cốt lõi bằng Công nghệ Java")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    add_p(doc, "Giải thích vai trò của các tệp tin cấu hình trọng yếu:", bold_prefix="Cấu hình hệ thống: ")
+    add_p(doc, "pom.xml: Định nghĩa toàn bộ các thư viện bên ngoài phụ thuộc bao gồm: javax.servlet-api (4.0.1), javax.servlet.jsp-api (2.3.3), jstl (1.2), ojdbc11 (23.4.0.24.05), org.apache.poi/poi-ooxml (5.2.5), jbcrypt (0.4) và org.apache.tomcat.embed (chạy Web Server nhúng).", bullet=True)
+    add_p(doc, "db.properties: Lưu trữ tập trung các tham số kết nối đến Oracle Database. Khi triển khai lên môi trường máy chủ sản xuất (Production Server), cán bộ kỹ thuật chỉ cần sửa thông tin trong file này mà không phải biên dịch lại mã nguồn Java.", bullet=True)
+    add_p(doc, "web.xml: Cấu hình ánh xạ Servlet (Servlet Mappings), khai báo các bộ lọc toàn cục (EncodingFilter, AuthFilter) và thiết lập trang chào mừng mặc định (welcome-file-list).", bullet=True)
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(4)
-    r = p.add_run(
-        "Dưới đây là cài đặt thực tế của các khối mã nguồn trọng tâm quyết định tính đúng đắn và an toàn của hệ thống [1], [2], [4], [6]:"
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
+    # 3.2
+    add_heading_2(doc, "3.2. Triển khai lớp kết nối và xử lý dữ liệu (DAO)")
+    
+    add_heading_3(doc, "3.2.1. Triển khai lớp DBConnection nạp cấu hình và quản lý tài nguyên")
+    add_p(doc, "Lớp DBConnection trong gói vn.edu.utc.grade.config chịu trách nhiệm đọc các thông số cấu hình từ tệp db.properties, nạp driver Oracle JDBC và khởi tạo kết nối. Để giải phóng tài nguyên một cách an toàn và triệt để, lớp cung cấp phương thức tiện ích close() nhận tham số biến đổi (Varargs) kiểu AutoCloseable:")
 
-    # Snippet 1: GradeCalculator
-    code_gc = """package vn.edu.utc.grade.service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
-import vn.edu.utc.grade.model.grading.Grade;
-
-public class GradeCalculator {
-
-    public static Double calculateTotal10(Double cc, Double gk, Double thi,
-                                          double wCC, double wGK, double wThi) {
-        if (thi == null) return null;
-        double valCC = (cc != null) ? cc : 0.0;
-        double valGK = (gk != null) ? gk : 0.0;
-        BigDecimal total = BigDecimal.valueOf(valCC).multiply(BigDecimal.valueOf(wCC))
-                .add(BigDecimal.valueOf(valGK).multiply(BigDecimal.valueOf(wGK)))
-                .add(BigDecimal.valueOf(thi).multiply(BigDecimal.valueOf(wThi)));
-        return total.setScale(1, RoundingMode.HALF_UP).doubleValue();
-    }
-
-    public static String toLetterScore(Double score10, Double finalScore) {
-        if (score10 == null) return null;
-        // Điểm liệt thi: nếu thi kết thúc học phần < 4.0 quy về F hoặc F+
-        if (finalScore != null && finalScore < 4.0) {
-            return (score10 >= 2.0) ? "F+" : "F";
-        }
-        if (score10 >= 9.5) return "A+";
-        if (score10 >= 8.5) return "A";
-        if (score10 >= 8.0) return "B+";
-        if (score10 >= 7.0) return "B";
-        if (score10 >= 6.0) return "C+";
-        if (score10 >= 5.5) return "C";
-        if (score10 >= 4.5) return "D+";
-        if (score10 >= 4.0) return "D";
-        if (score10 >= 2.0) return "F+";
-        return "F";
-    }
-
-    public static Double toScale4(String letter) {
-        if (letter == null) return null;
-        return switch (letter.toUpperCase().trim()) {
-            case "A+" -> 4.0;
-            case "A"  -> 3.8;
-            case "B+" -> 3.5;
-            case "B"  -> 3.0;
-            case "C+" -> 2.5;
-            case "C"  -> 2.0;
-            case "D+" -> 1.5;
-            case "D"  -> 1.0;
-            case "F+" -> 0.5;
-            default   -> 0.0; // F
-        };
-    }
-}"""
-    add_code_block(doc, code_gc, "Đoạn mã 4.1: Thuật toán tính điểm và quy đổi chuẩn tín chỉ UTC trong GradeCalculator.java")
-
-    # Snippet 2: DBConnection
     code_db = """package vn.edu.utc.grade.config;
 
 import java.io.InputStream;
@@ -1155,14 +1041,180 @@ public class DBConnection {
 
     public static void close(AutoCloseable... closeables) {
         for (AutoCloseable c : closeables) {
-            if (c != null) try { c.close(); } catch (Exception ignored) {}
+            if (c != null) {
+                try {
+                    c.close();
+                } catch (Exception ignored) {}
+            }
         }
     }
 }"""
-    add_code_block(doc, code_db, "Đoạn mã 4.2: Cơ chế nạp cấu hình và tạo kết nối Oracle 23ai trong DBConnection.java")
+    add_code_block(doc, code_db, "vn.edu.utc.grade.config.DBConnection.java")
 
-    # Snippet 3: ExcelService
-    code_excel = """package vn.edu.utc.grade.service;
+    add_heading_3(doc, "3.2.2. Triển khai PreparedStatement và Quản lý Transaction an toàn")
+    add_p(doc, "Để đảm bảo tuyệt đối an toàn trước các cuộc tấn công SQL Injection và duy trì tính toàn vẹn dữ liệu điểm, toàn bộ các câu lệnh SQL trong lớp GradeDAO đều được hiện thực bằng PreparedStatement kết hợp cơ chế kiểm soát Transaction:")
+
+    code_dao = """package vn.edu.utc.grade.dao.grading;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import vn.edu.utc.grade.config.DBConnection;
+import vn.edu.utc.grade.model.grading.Grade;
+import vn.edu.utc.grade.service.GradeCalculator;
+
+public class GradeDAO {
+    // Truy vấn an toàn danh sách điểm theo Lớp học phần
+    public List<Grade> getGradesByCourseClass(String classId) {
+        List<Grade> list = new ArrayList<>();
+        String sql = "SELECT b.*, s.HO_TEN FROM BANG_DIEM b " +
+                     "JOIN SINH_VIEN s ON b.MA_SV = s.MA_SV " +
+                     "WHERE b.MA_LHP = ? ORDER BY b.MA_SV";
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = DBConnection.getConnection();
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, classId); // Tham số an toàn, chống SQL Injection
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                Grade g = new Grade();
+                g.setId(rs.getLong("ID_DIEM"));
+                g.setCourseClassId(rs.getString("MA_LHP"));
+                g.setStudentId(rs.getString("MA_SV"));
+                g.setStudentName(rs.getString("HO_TEN"));
+                g.setAttendanceScore(rs.getObject("DIEM_CC") != null ? rs.getDouble("DIEM_CC") : null);
+                g.setMidtermScore(rs.getObject("DIEM_GK") != null ? rs.getDouble("DIEM_GK") : null);
+                g.setFinalScore(rs.getObject("DIEM_THI") != null ? rs.getDouble("DIEM_THI") : null);
+                g.setTotalScore10(rs.getObject("DIEM_TK_10") != null ? rs.getDouble("DIEM_TK_10") : null);
+                g.setGradeLetter(rs.getString("DIEM_CHU"));
+                g.setGradeScale4(rs.getObject("DIEM_HE_4") != null ? rs.getDouble("DIEM_HE_4") : null);
+                g.setStatus(rs.getString("TRANG_THAI"));
+                list.add(g);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.close(rs, ps, conn);
+        }
+        return list;
+    }
+
+    // Cập nhật điểm kết hợp ghi nhận Lịch sử sửa điểm với Transaction Rollback
+    public boolean updateGradeWithAudit(Grade g, String modifiedBy, String reason) {
+        String updateSql = "UPDATE BANG_DIEM SET DIEM_CC = ?, DIEM_GK = ?, DIEM_THI = ?, " +
+                           "DIEM_TK_10 = ?, DIEM_CHU = ?, DIEM_HE_4 = ? WHERE ID_DIEM = ?";
+        String logSql = "INSERT INTO LICHSU_SUA_DIEM (ID_DIEM, NGUOI_SUA, DIEM_CU_CC, DIEM_MOI_CC, " +
+                        "DIEM_CU_GK, DIEM_MOI_GK, DIEM_CU_THI, DIEM_MOI_THI, LY_DO) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        Connection conn = null;
+        PreparedStatement psUpdate = null;
+        PreparedStatement psLog = null;
+        try {
+            conn = DBConnection.getConnection();
+            conn.setAutoCommit(false); // Bắt đầu Transaction
+
+            // 1. Cập nhật dữ liệu vào bảng BANG_DIEM
+            psUpdate = conn.prepareStatement(updateSql);
+            psUpdate.setObject(1, g.getAttendanceScore());
+            psUpdate.setObject(2, g.getMidtermScore());
+            psUpdate.setObject(3, g.getFinalScore());
+            psUpdate.setObject(4, g.getTotalScore10());
+            psUpdate.setString(5, g.getGradeLetter());
+            psUpdate.setObject(6, g.getGradeScale4());
+            psUpdate.setLong(7, g.getId());
+            psUpdate.executeUpdate();
+
+            // 2. Ghi nhận nhật ký kiểm toán vào LICHSU_SUA_DIEM
+            psLog = conn.prepareStatement(logSql);
+            psLog.setLong(1, g.getId());
+            psLog.setString(2, modifiedBy);
+            psLog.setObject(3, g.getOldAttendanceScore());
+            psLog.setObject(4, g.getAttendanceScore());
+            psLog.setObject(5, g.getOldMidtermScore());
+            psLog.setObject(6, g.getMidtermScore());
+            psLog.setObject(7, g.getOldFinalScore());
+            psLog.setObject(8, g.getFinalScore());
+            psLog.setString(9, reason);
+            psLog.executeUpdate();
+
+            conn.commit(); // Xác nhận Transaction thành công
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) {} // Hoàn tác khi có lỗi
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            DBConnection.close(psUpdate, psLog, conn);
+        }
+    }
+}"""
+    add_code_block(doc, code_dao, "vn.edu.utc.grade.dao.grading.GradeDAO.java (PreparedStatement & Transaction)")
+
+    add_heading_3(doc, "3.2.3. Triển khai thuật toán quy đổi điểm GradeCalculator chuẩn UTC")
+    add_p(doc, "Lớp GradeCalculator cài đặt chính xác các công thức tính toán và làm tròn theo Quy chế đào tạo của Trường Đại học Giao thông Vận tải:")
+
+    code_calc = """package vn.edu.utc.grade.service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class GradeCalculator {
+    // Tính điểm tổng kết hệ 10 làm tròn 1 chữ số thập phân
+    public static Double calculateFinal10(Double att, Double mid, Double finalExam,
+                                          double wAtt, double wMid, double wExam) {
+        if (att == null || mid == null || finalExam == null) return null;
+        double raw = att * wAtt + mid * wMid + finalExam * wExam;
+        BigDecimal bd = BigDecimal.valueOf(raw).setScale(1, RoundingMode.HALF_UP);
+        return bd.doubleValue();
+    }
+
+    // Quy đổi sang Điểm chữ UTC (xử lý điều kiện điểm liệt thi < 4.0)
+    public static String toGradeLetter(Double score10, Double finalScore) {
+        if (score10 == null) return null;
+        // Điểm liệt thi: nếu thi kết thúc học phần < 4.0 quy về F hoặc F+
+        if (finalScore != null && finalScore < 4.0) {
+            return (score10 >= 2.0) ? "F+" : "F";
+        }
+        if (score10 >= 8.5) return "A";
+        if (score10 >= 8.0) return "B+";
+        if (score10 >= 7.0) return "B";
+        if (score10 >= 6.5) return "C+";
+        if (score10 >= 5.5) return "C";
+        if (score10 >= 5.0) return "D+";
+        if (score10 >= 4.0) return "D";
+        if (score10 >= 2.0) return "F+";
+        return "F";
+    }
+
+    // Quy đổi sang Thang điểm 4 tích lũy GPA/CPA
+    public static Double toScale4(String letter) {
+        if (letter == null) return null;
+        return switch (letter.toUpperCase().trim()) {
+            case "A"  -> 4.0;
+            case "B+" -> 3.5;
+            case "B"  -> 3.0;
+            case "C+" -> 2.5;
+            case "C"  -> 2.0;
+            case "D+" -> 1.5;
+            case "D"  -> 1.0;
+            case "F+" -> 0.5;
+            default   -> 0.0; // F
+        };
+    }
+}"""
+    add_code_block(doc, code_calc, "vn.edu.utc.grade.service.GradeCalculator.java")
+
+    add_heading_3(doc, "3.2.4. Triển khai xử lý file Excel bằng Apache POI trong ExcelService")
+    add_p(doc, "Lớp ExcelService sử dụng thư viện Apache POI để sinh tệp bảng điểm Excel chuẩn UTC và phân tích dữ liệu nhập từ giảng viên:")
+
+    code_poi = """package vn.edu.utc.grade.service;
 
 import java.io.OutputStream;
 import java.util.List;
@@ -1176,215 +1228,238 @@ public class ExcelService {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Bang_Diem");
             sheet.setDisplayGridlines(true);
+
+            // Tiêu đề các cột dữ liệu
             Row header = sheet.createRow(0);
-            String[] columns = {"STT", "Mã SV", "Họ và tên", "Chuyên cần", "Giữa kỳ", "Cuối kỳ", "TK Hệ 10", "Điểm Chữ", "Điểm Hệ 4"};
+            String[] columns = {"STT", "Mã SV", "Họ và tên", "Chuyên cần (10%)", "Giữa kỳ (30%)", "Cuối kỳ (60%)", "TK Hệ 10", "Điểm Chữ", "Điểm Hệ 4"};
             for (int i = 0; i < columns.length; i++) {
                 Cell cell = header.createCell(i);
                 cell.setCellValue(columns[i]);
+            }
+
+            // Ghi từng dòng dữ liệu điểm sinh viên
+            int rowIdx = 1;
+            for (Grade g : grades) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(rowIdx - 1);
+                row.createCell(1).setCellValue(g.getStudentId());
+                row.createCell(2).setCellValue(g.getStudentName());
+                if (g.getAttendanceScore() != null) row.createCell(3).setCellValue(g.getAttendanceScore());
+                if (g.getMidtermScore() != null) row.createCell(4).setCellValue(g.getMidtermScore());
+                if (g.getFinalScore() != null) row.createCell(5).setCellValue(g.getFinalScore());
+                if (g.getTotalScore10() != null) row.createCell(6).setCellValue(g.getTotalScore10());
+                if (g.getGradeLetter() != null) row.createCell(7).setCellValue(g.getGradeLetter());
+                if (g.getGradeScale4() != null) row.createCell(8).setCellValue(g.getGradeScale4());
+            }
+
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
             }
             workbook.write(out);
         }
     }
 }"""
-    add_code_block(doc, code_excel, "Đoạn mã 4.3: Xuất bảng điểm chuẩn định dạng Excel với Apache POI trong ExcelService.java")
+    add_code_block(doc, code_poi, "vn.edu.utc.grade.service.ExcelService.java (Apache POI)")
 
+    # 3.3
+    add_heading_2(doc, "3.3. Áp dụng chuẩn lập trình Java và Nguyên tắc tách biệt trách nhiệm")
+    add_p(doc, "Toàn bộ mã nguồn dự án được xây dựng tuân thủ nghiêm ngặt theo các tiêu chuẩn kỹ nghệ phần mềm của Oracle và cộng đồng Java chuyên nghiệp:")
+    add_p(doc, "Chuẩn đặt tên mã nguồn (Java Coding Conventions): Tên các lớp và giao diện (Classes, Interfaces) đặt theo quy tắc PascalCase (ví dụ: DBConnection, GradeDAO, CourseClass, ExcelService); Tên biến và phương thức đặt theo quy tắc camelCase (ví dụ: getGradesByCourseClass, toScale4, attendanceScore); Tên các hằng số tĩnh đặt theo quy tắc UPPER_SNAKE_CASE (ví dụ: DEFAULT_PAGE_SIZE, ROLE_ADMIN).", bullet=True)
+    add_p(doc, "Nguyên tắc tách biệt trách nhiệm (Separation of Concerns): Toàn bộ các câu lệnh SQL (SELECT, INSERT, UPDATE, DELETE) được cô lập 100% trong các lớp DAO. Tuyệt đối không viết câu lệnh SQL trong Servlet Controller hay trong các trang giao diện JSP. Các trang JSP chỉ thuần túy dùng thẻ JSTL và EL để hiển thị dữ liệu.", bullet=True)
+    add_p(doc, "Đóng gói dữ liệu (Encapsulation) và JavaBeans chuẩn: Tất cả các trường thuộc tính trong lớp Model đều khai báo với phạm vi truy cập private, cung cấp đầy đủ các hàm khởi tạo (Constructors) và các phương thức getter/setter tương ứng, cho phép JSTL Expression Language (${grade.studentName}) truy xuất dữ liệu một cách trực quan và an toàn.", bullet=True)
+
+    # End of Chapter 3 -> Page Break
     doc.add_page_break()
 
-    # =========================================================================
-    # CHƯƠNG 5: KẾT QUẢ THỰC NGHIỆM VÀ KẾT LUẬN
-    # =========================================================================
-    h_c5 = doc.add_paragraph()
-    h_c5.paragraph_format.space_before = Pt(6)
-    h_c5.paragraph_format.space_after = Pt(8)
-    r = h_c5.add_run("CHƯƠNG 5: KẾT QUẢ THỰC NGHIỆM VÀ ĐÁNH GIÁ HỆ THỐNG")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(14)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+print("Appended Chapter 3 successfully.")
 
-    # 5.1
-    h_51 = doc.add_paragraph()
-    h_51.paragraph_format.space_before = Pt(6)
-    h_51.paragraph_format.space_after = Pt(4)
-    r = h_51.add_run("5.1. Kịch bản cài đặt và khởi chạy hệ thống (1-Click Run)")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+def build_chapter_4(doc):
+    # CHƯƠNG 4
+    add_heading_1(doc, "CHƯƠNG 4: GIAO DIỆN VÀ KIỂM THỬ")
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "Nhóm phát triển đã tối ưu hóa tối đa quy trình triển khai nhằm đạt tiêu chuẩn bàn giao chuyên nghiệp. "
-        "Người sử dụng hoặc hội đồng chấm đồ án có thể khởi chạy toàn bộ hệ thống chỉ qua 3 bước đơn giản:\n"
-        "• Bước 1: Khởi tạo Cơ sở dữ liệu: Chạy kịch bản `database/init_db.sql` trong Oracle SQL Developer, DBeaver hoặc SQL*Plus. "
-        "Kịch bản tự động dọn sạch bảng cũ, tạo mới 11 bảng chuẩn hóa 3NF, thiết lập các ràng buộc toàn vẹn, chuỗi tự tăng IDENTITY và nạp sẵn dữ liệu mẫu thực tế của UTC.\n"
-        "• Bước 2: Kiểm tra cấu hình kết nối: Tệp `src/main/resources/db.properties` trỏ tới `jdbc:oracle:thin:@localhost:1521/FREEPDB1` "
-        "với tài khoản người dùng `utc_grade`.\n"
-        "• Bước 3: Khởi chạy 1-Click: Mở PowerShell tại thư mục dự án và chạy lệnh sau:\n"
-        "    mvn exec:java '-Dexec.mainClass=vn.edu.utc.grade.Main'\n"
-        "Maven sẽ tự động biên dịch, khởi động Embedded Apache Tomcat tại cổng `http://localhost:8080/` và sẵn sàng tiếp nhận yêu cầu."
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
+    add_callout(doc, "TỔNG QUAN NỘI DUNG CHƯƠNG 4", [
+        "Chương 4 giới thiệu toàn bộ giao diện trực quan đã xây dựng và kết quả kiểm thử phần mềm thực tế:",
+        "1. Trình bày các màn hình giao diện Web hiện đại: Đăng nhập & Đăng nhập 1 chạm, Dashboard quản trị tự co giãn Responsive, Web Data Table nhập điểm thay thế cho JTable trong Swing, Modal xác nhận an toàn thay thế JOptionPane, màn hình tra cứu điểm và in phiếu điểm A4.",
+        "2. Bảng Kịch bản kiểm thử (Test Cases) chi tiết kiểm chứng các trường hợp: Bỏ trống dữ liệu bắt buộc (Validation), Nhập điểm sai định dạng/ngoài khoảng, Trùng khóa chính PK (Mã SV), Sai mật khẩu, Phân quyền URL trái phép, Điểm liệt và Cảnh báo học vụ."
+    ])
 
-    add_callout(doc, 
-        "Tài khoản mẫu đăng nhập thử nghiệm hệ thống (khớp 100% CSDL Oracle):\n"
-        "• Phòng Đào Tạo (Admin): admin / admin123 (Duyệt điểm, quản lý lớp, xem Audit Log)\n"
-        "• Giảng viên: gv_nguyenvanan / gv123 (Phụ trách lớp OOP Java IT101, vào điểm, Excel)\n"
-        "• Giảng viên: gv_tranbichngoc / gv123 (Lớp CSDL Oracle IT102 - trạng thái SUBMITTED)\n"
-        "• Sinh viên: 211200001 / sv123 (Nguyễn Hoàng Nam, CPA Xuất sắc 3.80, in bảng điểm A4)\n"
-        "• Sinh viên: 211200008 / sv123 (Bùi Tuấn Anh, CPA 0.50 - Cảnh báo học vụ mức 2)",
-        "THÔNG TIN ĐĂNG NHẬP THỬ NGHIỆM TẠI TRƯỜNG ĐH GIAO THÔNG VẬN TẢI"
-    )
+    # 4.1
+    add_heading_2(doc, "4.1. Kết quả thiết kế giao diện")
 
-    # 5.2
-    h_52 = doc.add_paragraph()
-    h_52.paragraph_format.space_before = Pt(6)
-    h_52.paragraph_format.space_after = Pt(4)
-    r = h_52.add_run("5.2. Kết quả thực nghiệm các phân hệ chức năng giao diện")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    add_heading_3(doc, "4.1.1. Màn hình Đăng nhập hiện đại, Đăng nhập 1 chạm & Thông báo lỗi")
+    add_p(doc, "Màn hình Đăng nhập (/auth/login) được thiết kế hiện đại với bố cục chia đôi cân đối: Một bên là hình ảnh khuôn viên giảng đường Trường Đại học Giao thông Vận tải và logo thương hiệu UTC sắc nét; bên còn lại là biểu mẫu đăng nhập trang nhã với các trường nhập liệu có hiệu ứng tương tác (focus/hover).")
+    add_p(doc, "Xử lý thông báo lỗi đăng nhập: Khi người dùng nhập sai tên tài khoản hoặc mật khẩu không khớp nối trong CSDL Oracle, hệ thống hiển thị một khung cảnh báo (Alert banner) màu đỏ nổi bật với nội dung thông điệp thân thiện: 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!'. Biểu mẫu tự động giữ lại tên đăng nhập cũ để người dùng không phải nhập lại từ đầu.", bullet=True)
+    add_p(doc, "Tính năng Đăng nhập 1 chạm (One-Click Demo Login): Nhằm tạo sự thuận tiện tối đa cho Hội đồng đánh giá và Giáo viên phản biện, hệ thống tích hợp sẵn các nút chọn tài khoản mẫu ngay dưới biểu mẫu đăng nhập. Người đánh giá chỉ cần nhấp vào nút tài khoản mong muốn, hệ thống sẽ tự động đăng nhập đúng vai trò mà không cần phải gõ thủ công:", bullet=True)
 
-    ui_features = [
-        ("Phân hệ Đăng nhập và Xác thực (Authentication UI): ", 
-         "Giao diện đăng nhập hiện đại với nhận diện thương hiệu Trường ĐH Giao thông Vận tải. Hỗ trợ hiển thị cảnh báo lỗi bằng tiếng Việt chuẩn có dấu, tự động điều hướng người dùng tới Dashboard tương ứng với vai trò (Admin -> /admin/dashboard, Lecturer -> /lecturer/classes, Student -> /student/grades)."),
-        ("Phân hệ Bảng điều khiển Quản trị (Admin Dashboard & Analytics UI): ", 
-         "Cung cấp bức tranh toàn cảnh về hoạt động đào tạo của nhà trường: Thống kê tổng số lượng sinh viên, giảng viên, môn học, lớp học phần đang mở. Biểu đồ phổ điểm trực quan (A+, A, B+, B, C+, C, D+, D, F+, F) thời gian thực và Top sinh viên có CPA cao nhất."),
-        ("Phân hệ Quản lý Lớp chuyên ngành & Lớp học phần: ", 
-         "Quản lý sinh viên theo khóa/ngành/lớp (/admin/academic-classes), tạo mới lớp chuyên ngành, xem danh sách sinh viên theo lớp. Quản lý lớp học phần (/admin/classes), mở lớp mới và phân công giảng viên giảng dạy."),
-        ("Phân hệ Phê duyệt Bảng điểm (Grade Approval UI): ", 
-         "Hiển thị danh sách các lớp học phần đang chờ duyệt kèm trạng thái trực quan (Badge màu vàng SUBMITTED). Cán bộ Phòng Đào tạo có thể xem xét toàn bộ sổ điểm trước khi bấm 'Phê duyệt' để chuyển trạng thái sang PUBLISHED cho sinh viên tra cứu."),
-        ("Phân hệ Sổ điểm Giảng viên và Nhập/Xuất Excel (Lecturer Gradebook UI): ", 
-         "Giảng viên quản lý các lớp phụ trách. Chức năng nhập điểm trực tiếp trên bảng dạng lưới (Grid Editing) với tính năng tự động tính điểm tổng kết và quy đổi điểm chữ ngay trên trình duyệt. Hỗ trợ nút tải tệp mẫu Excel, nạp tệp điểm đã chấm hàng loạt và xuất sổ điểm lưu trữ."),
-        ("Phân hệ Tra cứu điểm và In phiếu điểm Sinh viên (Student Portal & Print UI): ", 
-         "Sinh viên tra cứu kết quả theo từng học kỳ, hiển thị rõ ràng điểm Chuyên cần, Giữa kỳ, Cuối kỳ, Điểm chữ và Điểm hệ 4. Hệ thống tính toán và hiển thị rõ ràng chỉ số GPA học kỳ và CPA toàn khóa. Đặc biệt, tính năng 'In bảng điểm' tự động tối ưu giao diện theo khổ giấy A4 tiêu chuẩn phục vụ nộp hồ sơ xét học bổng hoặc xin việc."),
-        ("Phân hệ Nhật ký lưu vết hệ thống (Audit Trail UI): ", 
-         "Lưu giữ chi tiết mọi hành vi sửa đổi điểm sau lần nhập đầu tiên: Ghi rõ tài khoản thực hiện, thời gian chính xác, loại điểm thay đổi, giá trị cũ và giá trị mới kèm lý do sửa đổi, đảm bảo tính giải trình và minh bạch tuyệt đối.")
+    add_callout(doc, "TÀI KHOẢN MẪU ĐĂNG NHẬP THỬ NGHIỆM HỆ THỐNG", [
+        "• Quản trị viên (Phòng Đào tạo): admin / admin123 (Duyệt điểm, quản lý lớp HP, xem Audit Log, Cảnh báo học vụ)",
+        "• Giảng viên mẫu 1: gv_nguyenvanan / gv123 (Phụ trách lớp LHP_IT101_01 Công nghệ Java, nhập điểm, Excel)",
+        "• Giảng viên mẫu 2: gv_tranbichngoc / gv123 (Phụ trách lớp LHP_IT102_01 Cơ sở dữ liệu Oracle - trạng thái SUBMITTED)",
+        "• Sinh viên mẫu 1: 211200001 / sv123 (Nguyễn Hoàng Nam, CPA Xuất sắc 3.80, in phiếu điểm A4)",
+        "• Sinh viên mẫu 2: 211200008 / sv123 (Bùi Tuấn Anh, CPA 0.50 - Cảnh báo học vụ mức 2 nguy cơ buộc thôi học)"
+    ])
+
+    add_heading_3(doc, "4.1.2. Màn hình Bảng điều khiển Quản trị viên (Admin Dashboard)")
+    add_p(doc, "Màn hình Bảng điều khiển (/admin/dashboard) cung cấp cái nhìn tổng quan toàn diện về hoạt động đào tạo của Nhà trường với các đặc tính nổi bật:")
+    add_p(doc, "Bố cục Responsive tự co giãn: Sử dụng công nghệ CSS Grid và Flexbox, giao diện tự động co giãn mượt mà theo kích thước màn hình hiển thị (từ màn hình máy tính để bàn 24 inch đến máy tính xách tay và máy tính bảng).", bullet=True)
+    add_p(doc, "Thanh điều hướng Navbar & Sidebar: Sidebar bên trái hiển thị danh mục quản lý có phân cấp với các biểu tượng trực quan (Quản lý Sinh viên, Quản lý Giảng viên, Môn học, Lớp học phần, Phê duyệt điểm, Thống kê, Nhật ký sửa điểm). Header bên trên hiển thị tên người dùng và vai trò Quản trị viên cùng nút Đăng xuất an toàn.", bullet=True)
+    add_p(doc, "Thẻ thống kê nhanh (KPI Metric Cards): Hiển thị tổng số sinh viên đang theo học, tổng số giảng viên, số lượng lớp học phần mở trong kỳ và số lượng bảng điểm đang chờ Phòng Đào tạo phê duyệt.", bullet=True)
+
+    add_heading_3(doc, "4.1.3. Màn hình Quản lý & Nhập điểm học phần trực quan của Giảng viên")
+    add_p(doc, "Màn hình Nhập điểm (/lecturer/grades) là giao diện làm việc chính của giảng viên, được thiết kế tối ưu thay thế hoàn toàn bảng JTable trong ứng dụng Java Swing truyền thống:")
+    add_p(doc, "Bảng dữ liệu Web Data Table tương tác cao: Danh sách sinh viên trong lớp học phần được hiển thị với tiêu đề cột rõ ràng, căn lề khoa học (Mã SV căn giữa, Họ tên căn trái, các cột điểm căn giữa). Các ô nhập điểm Chuyên cần, Giữa kỳ, Thi cuối kỳ được kiểm soát định dạng số.", bullet=True)
+    add_p(doc, "Tính toán và quy đổi điểm theo thời gian thực (Real-time Calculation): Ngay khi giảng viên nhập hoặc thay đổi điểm số của sinh viên, mã JavaScript phía trình duyệt lập tức tính toán điểm tổng kết thang 10 theo trọng số môn học, đồng thời tự động cập nhật Điểm chữ và Điểm thang 4 tương ứng mà không cần phải tải lại toàn bộ trang web.", bullet=True)
+    add_p(doc, "Thanh tác vụ thông minh (Action Bar): Tích hợp nút 'Xuất mẫu Excel' (tải sổ điểm lớp .xlsx), 'Nhập từ Excel' (nạp điểm hàng loạt từ tệp .xlsx) và nút 'Nộp điểm lên Phòng Đào tạo' kèm trạng thái huy hiệu màu (Badge): Xanh lá (PUBLISHED), Vàng cam (SUBMITTED), Xám tro (DRAFT).", bullet=True)
+
+    add_heading_3(doc, "4.1.4. Modal xác nhận thao tác an toàn (Confirmation Dialog)")
+    add_p(doc, "Để bảo vệ dữ liệu trước các thao tác nhầm lẫn tai hại (như bấm nhầm nút Xóa sinh viên hoặc bấm nhầm nút Gửi duyệt điểm khi chưa hoàn tất), hệ thống tích hợp các Hộp thoại Modal xác nhận hiện đại (thay thế cho hộp thoại JOptionPane.showConfirmDialog trong Java Swing Desktop):")
+    add_p(doc, "Khi người dùng ấn nút Xóa dữ liệu hoặc Gửi phê duyệt, một hộp thoại Modal nổi lên làm mờ nền phía sau, hiển thị thông điệp cảnh báo rõ ràng cùng hai lựa chọn: 'Hủy bỏ' (an toàn) và 'Xác nhận thực hiện' (nút màu đỏ nổi bật). Thao tác chỉ được gửi về máy chủ khi người dùng chủ động bấm xác nhận.", bullet=True)
+
+    add_heading_3(doc, "4.1.5. Màn hình Tra cứu điểm sinh viên, Cảnh báo học vụ & In phiếu điểm A4")
+    add_p(doc, "Màn hình Tra cứu điểm (/student/grades) cung cấp cho sinh viên cái nhìn trực quan, minh bạch về tiến độ học tập cá nhân:")
+    add_p(doc, "Bảng kết quả học phần chi tiết: Hiển thị danh sách các môn học đã học, số tín chỉ, điểm thành phần (CC, GK, Thi), điểm tổng kết thang 10, điểm chữ và điểm thang 4. Các môn học có điểm F hoặc F+ được làm nổi bật với màu chữ đỏ cảnh báo.", bullet=True)
+    add_p(doc, "Khung tổng kết GPA và CPA tích lũy: Tự động tổng kết số tín chỉ tích lũy, điểm trung bình chung học kỳ (GPA) và điểm trung bình tích lũy toàn khóa (CPA) theo thang điểm 4 của UTC.", bullet=True)
+    add_p(doc, "Khung cảnh báo học vụ sinh viên (CPA < 1.00): Đối với sinh viên có điểm tích lũy CPA dưới 1.00, hệ thống tự động hiển thị khung cảnh báo học vụ màu đỏ nổi bật theo đúng quy chế đào tạo tín chỉ UTC (xem hình minh họa thực tế bên dưới):", bullet=True)
+
+    # Insert warning image if exists
+    img_warn_path = r"C:\Users\Acer\.gemini\antigravity\brain\3315c80e-de45-4c40-afba-a73ff360418c\.user_uploaded\media_1793678153285_8c8d4615.png"
+    if os.path.exists(img_warn_path):
+        p_img = doc.add_paragraph()
+        p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_img.paragraph_format.space_before = Pt(6)
+        p_img.paragraph_format.space_after = Pt(4)
+        p_img.add_run().add_picture(img_warn_path, width=Inches(6.0))
+        
+        p_img_cap = doc.add_paragraph()
+        p_img_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_img_cap.paragraph_format.space_after = Pt(8)
+        r_ic = p_img_cap.add_run("Hình 4.1: Giao diện Cảnh báo học vụ sinh viên có CPA < 1.00 thực tế trên hệ thống")
+        r_ic.font.name = "Times New Roman"
+        r_ic.font.size = Pt(10)
+        r_ic.italic = True
+        r_ic.font.color.rgb = NAVY
+
+    add_p(doc, "Chức năng In phiếu điểm chuẩn A4 (/student/transcript/print): Khi sinh viên bấm nút 'In phiếu điểm', hệ thống chuyển sang trang in chuyên dụng với định dạng trang giấy A4 chuẩn hóa của Trường Đại học Giao thông Vận tải (có đầy đủ Quốc hiệu, Tiêu ngữ, Tên trường, Mã sinh viên, Lớp chuyên ngành, Bảng điểm chi tiết có đóng khung và phần ký nhận của Phòng Đào tạo).", bullet=True)
+
+    # 4.2
+    add_heading_2(doc, "4.2. Kiểm thử phần mềm (Testing)")
+
+    add_heading_3(doc, "4.2.1. Phương pháp kiểm thử hộp đen và Kiểm tra tính hợp lệ dữ liệu")
+    add_p(doc, "Nhóm phát triển đã áp dụng phương pháp kiểm thử hộp đen (Black-box Testing) kết hợp kiểm thử biên (Boundary Value Analysis) và phân lớp tương đương (Equivalence Partitioning) để kiểm tra toàn diện tất cả các trường hợp nghiệp vụ, đặc biệt chú trọng vào việc bắt lỗi nhập liệu (Input Validation), an toàn phân quyền và tính toán điểm số.")
+
+    add_heading_3(doc, "4.2.2. Bảng Kịch bản kiểm thử (Test Cases) chi tiết và Kết quả thực tế")
+    add_p(doc, "Dưới đây là bảng tổng hợp các ca kiểm thử tiêu biểu kèm kết quả thực tế trên phần mềm:")
+
+    test_data = [
+        ["Mã TC", "Chức năng kiểm thử", "Mô tả kịch bản kiểm thử", "Dữ liệu đầu vào", "Kết quả mong đợi", "Kết quả thực tế", "Đánh giá"],
+        ["TC01", "Validation Form Thêm SV", "Bỏ trống các trường bắt buộc (Mã SV, Họ tên)", "Mã SV = '', Họ tên = ''", "Hệ thống chặn submit, hiển thị cảnh báo yêu cầu nhập đầy đủ", "Hiển thị thông báo yêu cầu nhập trường bắt buộc", "Pass"],
+        ["TC02", "Validation Định dạng Điểm", "Nhập điểm thi là ký tự chữ hoặc số ngoài khoảng 0-10", "Điểm thi = 'abc' hoặc 11.5 hoặc -1.0", "Hệ thống báo lỗi kiểu dữ liệu và giá trị điểm không hợp lệ (0-10)", "Báo lỗi giá trị điểm ngoài khoảng quy định", "Pass"],
+        ["TC03", "Kiểm tra Trùng Khóa chính", "Thêm mới sinh viên có Mã SV đã tồn tại trong CSDL", "Mã SV = '211200001' (đã có)", "Khước từ lưu CSDL Oracle, bắt lỗi ORA-00001, báo trùng mã", "Hiển thị thông báo: Mã sinh viên đã tồn tại trên hệ thống", "Pass"],
+        ["TC04", "Xác thực Đăng nhập", "Nhập sai mật khẩu khi đăng nhập hệ thống", "User = 'admin', Pass = 'sai_pass'", "Hệ thống từ chối đăng nhập, hiển thị thông báo lỗi màu đỏ", "Hiển thị thông báo sai thông tin đăng nhập", "Pass"],
+        ["TC05", "Phân quyền RBAC qua URL", "Sinh viên cố tình truy cập trực tiếp URL phê duyệt điểm", "URL: /admin/grade-approval với tài khoản sinh viên", "AuthFilter chặn truy cập, chuyển hướng hoặc báo lỗi 403 Forbidden", "Bị chặn và chuyển hướng về trang chủ", "Pass"],
+        ["TC06", "Xét duyệt Điểm liệt Thi", "Sinh viên có điểm quá trình cao nhưng thi cuối kỳ < 4.0", "CC = 9.0, GK = 8.5, Thi = 3.5", "Hệ thống quy về điểm F+ (thang 4 = 0.5) dù điểm TB > 4.0", "Quy đổi chính xác ra điểm chữ F+, thang 4 là 0.5", "Pass"],
+        ["TC07", "Cảnh báo học vụ tự động", "Sinh viên có điểm tích lũy CPA < 1.00 toàn khóa", "Sinh viên 211200008 (Bùi Tuấn Anh), CPA = 0.50", "Hệ thống tự động đưa vào danh sách cảnh báo học vụ mức 2", "Hiển thị bảng cảnh báo đỏ: Nguy cơ buộc thôi học", "Pass"],
+        ["TC08", "Import bảng điểm Excel", "Giảng viên nạp danh sách điểm từ file Excel .xlsx mẫu", "Tệp Bang_Diem_Mau_LHP_IT101_01.xlsx", "Apache POI đọc file, cập nhật thành công CSDL Oracle", "Cập nhật thành công toàn bộ điểm của lớp học phần", "Pass"],
+        ["TC09", "Kiểm toán Sửa điểm (Audit)", "Giảng viên/Admin sửa điểm học phần đã công bố", "Sửa điểm thi từ 4.0 lên 8.0, nhập lý do: 'Chấm phúc khảo'", "Lưu điểm mới vào BANG_DIEM và ghi 1 bản ghi vào LICHSU_SUA_DIEM", "Ghi nhận đầy đủ vết sửa điểm trong bảng nhật ký kiểm toán", "Pass"]
     ]
-    for feat_name, feat_desc in ui_features:
-        p_f = doc.add_paragraph(style='List Bullet')
-        p_f.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p_f.paragraph_format.space_before = Pt(3)
-        p_f.paragraph_format.space_after = Pt(3)
-        p_f.paragraph_format.line_spacing = 1.25
-        r1 = p_f.add_run(feat_name)
-        r1.font.name = "Times New Roman"
-        r1.font.size = Pt(12)
-        r1.font.bold = True
-        r2 = p_f.add_run(feat_desc)
-        r2.font.name = "Times New Roman"
-        r2.font.size = Pt(12)
+    t_tc = doc.add_table(rows=len(test_data), cols=7)
+    for r_i, r_data in enumerate(test_data):
+        for c_i, c_val in enumerate(r_data):
+            t_tc.cell(r_i, c_i).paragraphs[0].text = c_val
+    format_table(t_tc, [Cm(1.4), Cm(2.4), Cm(3.2), Cm(2.4), Cm(3.4), Cm(3.4), Cm(1.2)],
+                 [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER])
 
-    # 5.3
-    h_53 = doc.add_paragraph()
-    h_53.paragraph_format.space_before = Pt(6)
-    h_53.paragraph_format.space_after = Pt(4)
-    r = h_53.add_run("5.3. Đánh giá ưu điểm, hạn chế và hướng phát triển đề tài")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
-
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.line_spacing = 1.25
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run(
-        "a. Đánh giá ưu điểm nổi bật của hệ thống:\n"
-        "• Tính chính xác và chuẩn hóa: Triệt tiêu hoàn toàn sai sót tính điểm thủ công, tuân thủ nghiêm ngặt quy chế tín chỉ UTC và xử lý chuẩn xác điểm liệt thi [9], [10].\n"
-        "• Công nghệ Java thuần túy, hiệu năng cao: Không phụ thuộc vào các framework cồng kềnh, hệ thống sử dụng Servlet/JSP và JDBC thuần giúp thời gian nạp trang và phản hồi dưới 15ms.\n"
-        "• An toàn dữ liệu tuyệt đối: Mô hình phân quyền RBAC kết hợp cơ chế lưu vết Audit Log giúp minh bạch hóa mọi biến động điểm số [11].\n"
-        "• Trải nghiệm người dùng vượt trội: Giao diện web hiện đại, hỗ trợ nhập xuất file Excel linh hoạt (Apache POI) và in ấn chuẩn trang A4.\n\n"
-        "b. Một số hạn chế hiện tại:\n"
-        "• Hệ thống hiện tại vận hành trên môi trường mạng nội bộ, chưa tích hợp máy chủ gửi thư tự động (SMTP Mail Server) để gửi thông báo biến động điểm tức thời về email sinh viên.\n"
-        "• Chưa tích hợp Chữ ký số điện tử (Digital Signature) trên tệp PDF bảng điểm cấp bằng trực tuyến.\n\n"
-        "c. Hướng phát triển và mở rộng trong tương lai:\n"
-        "• Tích hợp dịch vụ gửi thư điện tử tự động qua giao thức JavaMail API.\n"
-        "• Xây dựng hệ thống RESTful API kết nối với ứng dụng di động (Mobile App iOS & Android dành cho sinh viên).\n"
-        "• Áp dụng chữ ký số PKI trên tệp bảng điểm điện tử xuất bản cho sinh viên."
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-
-    # Kết luận chung
-    p_end = doc.add_paragraph()
-    p_end.paragraph_format.space_before = Pt(10)
-    p_end.paragraph_format.space_after = Pt(8)
-    r_end = p_end.add_run("KẾT LUẬN CHUNG:")
-    r_end.font.name = "Times New Roman"
-    r_end.font.size = Pt(13)
-    r_end.font.bold = True
-    r_end.font.color.rgb = RGBColor(0, 51, 102)
-
-    p_end_text = doc.add_paragraph()
-    p_end_text.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p_end_text.paragraph_format.line_spacing = 1.25
-    r = p_end_text.add_run(
-        "Đề tài \"Xây dựng Hệ thống Quản lý điểm Sinh viên theo học chế tín chỉ sử dụng Java Web (Servlet / JSP / JDBC) và Oracle Database 23ai\" "
-        "trong khuôn khổ học phần Công nghệ Java đã hoàn thành xuất sắc toàn bộ mục tiêu đề ra. "
-        "Sản phẩm không chỉ là một ứng dụng phần mềm hoạt động ổn định, tin cậy, đáp ứng đầy đủ yêu cầu nghiệp vụ thực tế của Trường Đại học Giao thông Vận tải, "
-        "mà còn là minh chứng rõ ràng cho việc vận dụng nhuần nhuyễn kiến trúc phần mềm hướng đối tượng MVC, kỹ thuật quản trị cơ sở dữ liệu nâng cao trên Oracle 23ai "
-        "và các chuẩn mực công nghệ phần mềm hiện đại."
-    )
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(13)
-
+    # End of Chapter 4 -> Page Break
     doc.add_page_break()
 
-    # =========================================================================
+print("Appended Chapter 4 successfully.")
+
+def build_conclusion_and_references(doc):
+    # KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN
+    add_heading_1(doc, "KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN")
+
+    add_heading_2(doc, "1. Kết quả đạt được của đề tài")
+    add_p(doc, "Sau quá trình nghiên cứu lý thuyết, khảo sát nghiệp vụ thực tế tại Trường Đại học Giao thông Vận tải và bắt tay vào triển khai kỹ thuật, nhóm sinh viên chúng em đã hoàn thành xuất sắc các mục tiêu đề ra cho bài tập nhóm học phần Công nghệ Java:")
+    add_p(doc, "Xây dựng thành công ứng dụng Web hoàn chỉnh: Ứng dụng chạy ổn định trên nền tảng Java EE (Servlet 4.0/5.0, JSP 2.3, JSTL 1.2) với kiến trúc MVC 3 tầng mạch lạc, tách biệt hoàn toàn giữa giao diện, logic điều hướng và mã truy xuất cơ sở dữ liệu.", bullet=True)
+    add_p(doc, "Tích hợp cơ sở dữ liệu Oracle Database 23ai quy chuẩn: Lược đồ 11 bảng được chuẩn hóa đạt dạng 3NF, thiết lập đầy đủ các khóa chính, khóa ngoại, ràng buộc kiểm tra toàn vẹn và tối ưu hóa câu lệnh truy vấn qua PreparedStatement.", bullet=True)
+    add_p(doc, "Cài đặt chuẩn xác Quy chế đào tạo tín chỉ UTC: Thuật toán trong GradeCalculator tính toán chính xác điểm tổng kết thang 10, quy đổi điểm chữ, điểm hệ 4 và xét điều kiện điểm liệt thi kết thúc học phần (< 4.0) theo đúng văn bản quy phạm của Bộ GD&ĐT và Nhà trường.", bullet=True)
+    add_p(doc, "Quy trình phê duyệt điểm minh bạch và Lưu vết kiểm toán: Quy trình xét duyệt 3 bước (DRAFT -> SUBMITTED -> PUBLISHED) ngăn chặn tình trạng sửa điểm tùy tiện; bảng LICHSU_SUA_DIEM ghi nhận chi tiết mọi biến động sửa đổi phục vụ công tác thanh tra học vụ.", bullet=True)
+    add_p(doc, "Tích hợp thư viện Apache POI xử lý Excel chuyên nghiệp: Hỗ trợ giảng viên xuất sổ điểm lớp và nhập điểm tự động từ file .xlsx nhanh chóng, chính xác.", bullet=True)
+    add_p(doc, "Giao diện Web Responsive hiện đại, tiện ích cao: Dashboard trực quan, tự co giãn trên nhiều kích thước màn hình, tính năng Đăng nhập 1 chạm thuận tiện cho việc chấm thi, tự động phát hiện và cảnh báo học vụ sinh viên (CPA < 1.00) và in phiếu điểm học kỳ A4 sắc nét.", bullet=True)
+
+    add_heading_2(doc, "2. Những mặt hạn chế còn tồn đọng")
+    add_p(doc, "Bên cạnh những kết quả tích cực đã đạt được, hệ thống vẫn còn một số điểm hạn chế do giới hạn về mặt thời gian và phạm vi của bài tập nhóm:")
+    add_p(doc, "Chưa tích hợp chữ ký số điện tử (Digital Signature): Quy trình nộp điểm của giảng viên hiện tại dựa trên xác thực tài khoản và phân quyền trong phần mềm, chưa tích hợp chứng thư số hoặc chữ ký số chuyên dụng để xác nhận giá trị pháp lý tuyệt đối của bảng điểm điện tử.", bullet=True)
+    add_p(doc, "Giao diện trên màn hình di động cỡ nhỏ: Mặc dù giao diện tổng thể đã đáp ứng chuẩn Responsive, tuy nhiên đối với các bảng điểm lớp học phần có quá nhiều cột thành phần (chuyên cần, giữa kỳ, thi, điểm 10, điểm chữ, điểm 4, trạng thái), người dùng trên điện thoại di động vẫn cần thao tác cuộn ngang (horizontal scroll) để xem đầy đủ.", bullet=True)
+    add_p(doc, "Chưa có hệ thống gửi thông báo tự động đa kênh: Phần mềm hiện tại chỉ hỗ trợ hiển thị thông báo trực tiếp khi người dùng đăng nhập vào hệ thống, chưa gửi tự động qua Email sinh viên hay tin nhắn SMS/Zalo khi có bảng điểm mới được công bố.", bullet=True)
+
+    add_heading_2(doc, "3. Hướng nghiên cứu và phát triển trong tương lai")
+    add_p(doc, "Để hệ thống Quản lý điểm UTC có thể đưa vào ứng dụng thực tế trên quy mô toàn Trường Đại học Giao thông Vận tải trong tương lai, nhóm đề xuất các hướng nâng cấp và mở rộng trọng tâm sau:")
+    add_p(doc, "Tích hợp hệ thống Đăng nhập một lần (Single Sign-On - SSO): Kết nối hệ thống với cổng định danh tập trung của Nhà trường qua giao thức OAuth 2.0 / SAML 2.0 (tài khoản Google Workspace for Education @utc.edu.vn hoặc Microsoft Entra ID), giúp sinh viên và cán bộ không phải ghi nhớ nhiều mật khẩu khác nhau.", bullet=True)
+    add_p(doc, "Xây dựng cổng thông báo tự động (Notification Gateway): Tích hợp dịch vụ gửi Email thông báo tự động (qua JavaMail API / SendGrid) và tin nhắn Zalo ZNS để thông báo tức thời điểm thi, thời hạn nộp điểm và cảnh báo học vụ đến sinh viên và phụ huynh.", bullet=True)
+    add_p(doc, "Phát triển ứng dụng di động (Mobile App): Xây dựng ứng dụng native trên iOS và Android sử dụng Flutter hoặc React Native kết nối với Backend Java thông qua hệ thống RESTful APIs bảo mật bằng JWT (JSON Web Token).", bullet=True)
+    add_p(doc, "Ứng dụng Trí tuệ Nhân tạo (AI & Machine Learning): Xây dựng mô hình phân tích học tập (Learning Analytics) dựa trên dữ liệu điểm số tích lũy để dự báo sớm nguy cơ sinh viên bị cảnh báo học tập hoặc trượt môn, từ đó tự động đưa ra các khuyến nghị đăng ký môn học và cải thiện kết quả học tập phù hợp cho từng cá nhân sinh viên.", bullet=True)
+
+    # End of Conclusion -> Page Break
+    doc.add_page_break()
+
     # TÀI LIỆU THAM KHẢO
-    # =========================================================================
-    h_ref = doc.add_paragraph()
-    h_ref.paragraph_format.space_before = Pt(6)
-    h_ref.paragraph_format.space_after = Pt(10)
-    r = h_ref.add_run("TÀI LIỆU THAM KHẢO")
-    r.font.name = "Times New Roman"
-    r.font.size = Pt(14)
-    r.font.bold = True
-    r.font.color.rgb = RGBColor(0, 51, 102)
+    add_heading_1(doc, "TÀI LIỆU THAM KHẢO")
 
-    refs = [
-        "[1] Oracle Corporation, \"Java Platform, Standard Edition Documentation (JDK 17 LTS / JDK 21 LTS)\", Oracle Technology Network, 2023.",
-        "[2] Jakarta EE Specification Committee, \"Jakarta Servlet Specification 4.0 / 5.0\", Eclipse Foundation, 2020.",
+    add_p(doc, "Các tài liệu kỹ thuật, quy chế đào tạo và giáo trình học thuật được trích dẫn và tham khảo trong quá trình nghiên cứu và xây dựng hệ thống:")
+
+    references_list = [
+        "[1] Oracle Corporation, \"Java Platform, Standard Edition Documentation (JDK 17 LTS / JDK 21 LTS)\", Oracle Technology Network, 2023. [Online]. Available: https://docs.oracle.com/en/java/javase/",
+        "[2] Jakarta EE Specification Committee, \"Jakarta Servlet Specification 4.0 / 5.0\", Eclipse Foundation, 2020. [Online]. Available: https://jakarta.ee/specifications/servlet/",
         "[3] Oracle Corporation, \"JavaServer Pages (JSP) v2.3 Specification & JSTL 1.2 Tag Library\", Oracle America, Inc., 2019.",
-        "[4] Oracle Corporation, \"Oracle Database 23ai Free Documentation & SQL Language Reference\", Oracle Corporation, Redwood Shores, CA, 2024.",
+        "[4] Oracle Corporation, \"Oracle Database 23ai Free Documentation & SQL Language Reference\", Oracle Corporation, Redwood Shores, CA, 2024. [Online]. Available: https://docs.oracle.com/en/database/oracle/oracle-database/23/",
         "[5] Oracle Corporation, \"Oracle Database JDBC Developer's Guide (Release 23ai)\", Oracle Corporation, 2024.",
-        "[6] The Apache Software Foundation, \"Apache POI - the Java API for Microsoft Documents (Version 5.2.5)\", Apache Software Foundation, 2024.",
-        "[7] The Apache Software Foundation, \"Apache Tomcat 9.0 / 10.1 Architecture and Embedded Server Guide\", Apache Software Foundation, 2024.",
-        "[8] The Apache Software Foundation, \"Apache Maven Project Management and Comprehension Tool (Version 3.9)\", Apache Software Foundation, 2024.",
-        "[9] Bộ Giáo dục và Đào tạo, \"Quy chế đào tạo trình độ đại học\", Ban hành kèm theo Thông tư số 08/2021/TT-BGDĐT ngày 18 tháng 3 năm 2021 của Bộ trưởng Bộ Giáo dục và Đào tạo.",
-        "[10] Trường Đại học Giao thông Vận tải, \"Quy định đào tạo đại học chính quy theo hệ thống tín chỉ tại Trường Đại học Giao thông Vận tải\", Quyết định của Hiệu trưởng Trường ĐH Giao thông Vận tải, Hà Nội.",
-        "[11] Martin Fowler, \"Patterns of Enterprise Application Architecture\", Addison-Wesley Professional, 2002.",
-        "[12] Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides, \"Design Patterns: Elements of Reusable Object-Oriented Software\" (GoF), Addison-Wesley, 1994.",
-        "[13] Joshua Bloch, \"Effective Java (3rd Edition)\", Addison-Wesley Professional, 2018.",
-        "[14] Cay S. Horstmann, \"Core Java Volume I – Fundamentals & Volume II – Advanced Features\", 12th Edition, Prentice Hall, 2022."
+        "[6] Apache Software Foundation, \"Apache POI - the Java API for Microsoft Documents (Version 5.2.x)\", 2023. [Online]. Available: https://poi.apache.org/",
+        "[7] Apache Software Foundation, \"Apache Tomcat 9.0 / 10.1 Architecture and Configuration Guide\", 2024. [Online]. Available: https://tomcat.apache.org/",
+        "[8] Bộ Giáo dục và Đào tạo, \"Thông tư số 08/2021/TT-BGDĐT ban hành Quy chế đào tạo trình độ đại học\", Hà Nội, ngày 18 tháng 03 năm 2021.",
+        "[9] Trường Đại học Giao thông Vận tải, \"Quy định đào tạo trình độ đại học theo hệ thống tín chỉ tại Trường Đại học Giao thông Vận tải\", ban hành kèm Quyết định của Hiệu trưởng, Hà Nội.",
+        "[10] Joshua Bloch, \"Effective Java\", 3rd Edition, Addison-Wesley Professional, Boston, MA, 2018.",
+        "[11] Cay S. Horstmann, \"Core Java Volume I--Fundamentals\", 12th Edition, Prentice Hall, 2022.",
+        "[12] Martin Fowler, \"Patterns of Enterprise Application Architecture\", Addison-Wesley, Boston, MA, 2002.",
+        "[13] Damien Miller, \"jBCrypt: A Java implementation of OpenBSD's Blowfish password hashing algorithm\", 2015. [Online]. Available: https://www.mindrot.org/projects/jBCrypt/",
+        "[14] Open Web Application Security Project (OWASP), \"OWASP Top 10: The Ten Most Critical Web Application Security Risks\", OWASP Foundation, 2021."
     ]
 
-    for ref in refs:
-        p_r = doc.add_paragraph()
-        p_r.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p_r.paragraph_format.space_before = Pt(2)
-        p_r.paragraph_format.space_after = Pt(4)
-        p_r.paragraph_format.line_spacing = 1.2
-        run = p_r.add_run(ref)
-        run.font.name = "Times New Roman"
-        run.font.size = Pt(11)
+    for ref in references_list:
+        p_ref = doc.add_paragraph()
+        p_ref.paragraph_format.space_before = Pt(2)
+        p_ref.paragraph_format.space_after = Pt(4)
+        p_ref.paragraph_format.left_indent = Cm(0.8)
+        p_ref.paragraph_format.first_line_indent = Cm(-0.8)
+        p_ref.paragraph_format.line_spacing = 1.2
+        r = p_ref.add_run(ref)
+        r.font.name = "Times New Roman"
+        r.font.size = Pt(11)
+        r.font.color.rgb = DARK_GRAY
 
-    # LƯU FILE Ở CẢ THƯ MỤC GỐC VÀ THƯ MỤC DOCS/
-    root_file = os.path.join(os.getcwd(), "Bao_Cao_Bai_Tap_Nhom_Quan_Ly_Diem_UTC.docx")
-    docs_file = os.path.join(os.getcwd(), "docs", "Bao_Cao_Bai_Tap_Nhom_Quan_Ly_Diem_UTC.docx")
+    print("Appended Conclusion and References successfully.")
+
+def main():
+    print("Beginning generation of Bao_Cao_Bai_Tap_Nhom_Quan_Ly_Diem_UTC.docx...")
+    doc = docx.Document()
     
-    doc.save(root_file)
-    os.makedirs(os.path.join(os.getcwd(), "docs"), exist_ok=True)
-    doc.save(docs_file)
-    
-    print(f"SUCCESS: Saved to root: {root_file} ({os.path.getsize(root_file)} bytes)")
-    print(f"SUCCESS: Saved to docs: {docs_file} ({os.path.getsize(docs_file)} bytes)")
+    # Build all sections in sequence
+    build_cover_and_intro(doc)
+    build_chapter_1(doc)
+    build_chapter_2(doc)
+    build_chapter_3(doc)
+    build_chapter_4(doc)
+    build_conclusion_and_references(doc)
+
+    out_root = "Bao_Cao_Bai_Tap_Nhom_Quan_Ly_Diem_UTC.docx"
+    out_docs = os.path.join("docs", "Bao_Cao_Bai_Tap_Nhom_Quan_Ly_Diem_UTC.docx")
+
+    doc.save(out_root)
+    print(f"SUCCESS: Saved to root: {os.path.abspath(out_root)} ({os.path.getsize(out_root)} bytes)")
+
+    os.makedirs("docs", exist_ok=True)
+    doc.save(out_docs)
+    print(f"SUCCESS: Saved to docs: {os.path.abspath(out_docs)} ({os.path.getsize(out_docs)} bytes)")
 
 if __name__ == "__main__":
-    build_report()
+    main()
