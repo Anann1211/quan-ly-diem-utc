@@ -54,6 +54,9 @@
             <i class="fa-solid fa-triangle-exclamation mr-2 text-sm text-rose-500"></i>
             <c:choose>
                 <c:when test="${param.error == 'empty_fields'}">Vui lòng điền đầy đủ các thông tin bắt buộc!</c:when>
+                <c:when test="${param.error == 'not_found'}">Không tìm thấy thông tin lớp học phần yêu cầu!</c:when>
+                <c:when test="${param.error == 'class_published'}">Lớp học phần đã công bố điểm chính thức (PUBLISHED), không thể thực hiện thao tác!</c:when>
+                <c:when test="${param.error == 'operation_failed'}">Thao tác thất bại! Không thể xóa lớp học phần vì đã có sinh viên hoặc đã có điểm số.</c:when>
                 <c:otherwise>${param.error}</c:otherwise>
             </c:choose>
         </div>

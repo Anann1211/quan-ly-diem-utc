@@ -22,6 +22,31 @@
         </button>
     </div>
 
+    <!-- Alert Messages -->
+    <c:if test="${not empty param.msg}">
+        <div class="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-center">
+            <i class="fa-solid fa-circle-check mr-2 text-sm text-emerald-500"></i>
+            <c:choose>
+                <c:when test="${param.msg == 'subject_added'}">Thêm môn học mới thành công!</c:when>
+                <c:when test="${param.msg == 'subject_updated'}">Cập nhật thông tin môn học thành công!</c:when>
+                <c:when test="${param.msg == 'subject_deleted'}">Đã xóa môn học thành công!</c:when>
+                <c:otherwise>Thao tác thực hiện thành công!</c:otherwise>
+            </c:choose>
+        </div>
+    </c:if>
+    <c:if test="${not empty param.error}">
+        <div class="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center">
+            <i class="fa-solid fa-triangle-exclamation mr-2 text-sm text-rose-500"></i>
+            <c:choose>
+                <c:when test="${param.error == 'empty_fields'}">Vui lòng điền đầy đủ Mã môn học và Tên môn học!</c:when>
+                <c:when test="${param.error == 'invalid_credits'}">Số tín chỉ của môn học phải là số nguyên lớn hơn 0!</c:when>
+                <c:when test="${param.error == 'invalid_weights'}">Tổng tỷ lệ trọng số (Chuyên cần + Giữa kỳ + Cuối kỳ) phải bằng đúng 100%!</c:when>
+                <c:when test="${param.error == 'operation_failed'}">Thao tác không thành công! Không thể xóa môn học vì đã có lớp học phần mở hoặc dữ liệu điểm liên quan.</c:when>
+                <c:otherwise>${param.error}</c:otherwise>
+            </c:choose>
+        </div>
+    </c:if>
+
     <!-- Subjects Table -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">

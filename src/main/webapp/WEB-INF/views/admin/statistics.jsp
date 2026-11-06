@@ -58,7 +58,7 @@
             </span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-600">
+            <table class="w-full min-w-[700px] text-left text-xs text-slate-600">
                 <thead class="bg-slate-50 text-slate-700 uppercase font-bold text-[11px] border-b border-slate-200">
                     <tr>
                         <th class="px-4 py-3 text-center whitespace-nowrap">Xếp hạng</th>
@@ -109,7 +109,7 @@
             </span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-600">
+            <table class="w-full min-w-[720px] text-left text-xs text-slate-600">
                 <thead class="bg-rose-50/30 text-slate-700 uppercase font-bold text-[11px] border-b border-rose-100">
                     <tr>
                         <th class="px-4 py-3 whitespace-nowrap">Mã SV</th>
@@ -117,7 +117,7 @@
                         <th class="px-4 py-3 whitespace-nowrap">Lớp quản lý</th>
                         <th class="px-4 py-3 text-center whitespace-nowrap">Số TC Tích lũy</th>
                         <th class="px-4 py-3 text-center whitespace-nowrap">Điểm CPA Thang 4</th>
-                        <th class="px-4 py-3 text-center whitespace-nowrap">Mức cảnh báo</th>
+                        <th class="px-4 py-3 text-center whitespace-nowrap min-w-[200px]">Mức cảnh báo</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-rose-100">
@@ -129,9 +129,28 @@
                             <td class="px-4 py-3 text-center font-bold text-slate-700 whitespace-nowrap">${ws.totalCredits} TC</td>
                             <td class="px-4 py-3 text-center font-bold text-rose-600 text-sm whitespace-nowrap">${ws.cpa}</td>
                             <td class="px-4 py-3 text-center whitespace-nowrap">
-                                <span class="inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-sm">
-                                    <i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-600"></i>${ws.cpa < 0.8 ? 'Cảnh báo mức 2 (Nguy cơ buộc thôi học)' : 'Cảnh báo mức 1'}
-                                </span>
+                                <c:choose>
+                                    <c:when test="${ws.cpa < 0.8}">
+                                        <div class="inline-flex flex-col items-center">
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs whitespace-nowrap">
+                                                <i class="fa-solid fa-triangle-exclamation mr-1.5 text-rose-600"></i>Cảnh báo mức 2
+                                            </span>
+                                            <span class="text-[11px] font-semibold text-rose-600 mt-1 whitespace-nowrap">
+                                                Nguy cơ buộc thôi học
+                                            </span>
+                                        </div>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <div class="inline-flex flex-col items-center">
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs whitespace-nowrap">
+                                                <i class="fa-solid fa-circle-exclamation mr-1.5 text-amber-600"></i>Cảnh báo mức 1
+                                            </span>
+                                            <span class="text-[11px] font-medium text-amber-700 mt-1 whitespace-nowrap">
+                                                Học lực yếu (CPA &lt; 1.00)
+                                            </span>
+                                        </div>
+                                    </c:otherwise>
+                                </c:choose>
                             </td>
                         </tr>
                     </c:forEach>

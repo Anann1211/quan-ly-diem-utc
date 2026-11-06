@@ -96,11 +96,17 @@ public class AcademicManageServlet extends HttpServlet {
                     Subject s = new Subject(subjectId.trim(), subjectName.trim(), credits, wCC / 100.0, wGK / 100.0, wThi / 100.0, subjectType);
                     if ("add".equals(action)) {
                         subjectDAO.insertSubject(s);
+                        resp.sendRedirect(req.getContextPath() + "/admin/subjects?msg=subject_added");
+                        return;
                     } else {
                         subjectDAO.updateSubject(s);
+                        resp.sendRedirect(req.getContextPath() + "/admin/subjects?msg=subject_updated");
+                        return;
                     }
                 } else if ("delete".equals(action)) {
                     subjectDAO.deleteSubject(req.getParameter("subjectId"));
+                    resp.sendRedirect(req.getContextPath() + "/admin/subjects?msg=subject_deleted");
+                    return;
                 }
             } catch (Exception e) {
                 resp.sendRedirect(req.getContextPath() + "/admin/subjects?error=operation_failed");

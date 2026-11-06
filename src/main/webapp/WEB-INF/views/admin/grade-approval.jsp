@@ -44,6 +44,20 @@
         </div>
     </c:if>
 
+    <c:if test="${param.msg == 'student_withdrawn'}">
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+            <span>Đã xóa sinh viên khỏi danh sách lớp học phần thành công!</span>
+        </div>
+    </c:if>
+
+    <c:if test="${param.error == 'cannot_withdraw_published'}">
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i>
+            <span>Không thể xóa sinh viên khi bảng điểm lớp học phần đã được <strong>Công bố chính thức (PUBLISHED)</strong>!</span>
+        </div>
+    </c:if>
+
     <c:choose>
         <c:when test="${not empty targetClass}">
             <!-- Class Details & Action Toolbar -->

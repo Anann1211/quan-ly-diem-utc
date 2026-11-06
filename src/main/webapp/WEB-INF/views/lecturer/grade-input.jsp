@@ -74,10 +74,31 @@
         </div>
     </c:if>
 
+    <c:if test="${param.error == 'locked'}">
+        <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center space-x-2">
+            <i class="fa-solid fa-lock text-amber-600"></i>
+            <span>Bảng điểm lớp học phần đã được nộp hoặc đã công bố chính thức, không thể sửa đổi hoặc nạp thêm điểm!</span>
+        </div>
+    </c:if>
+
+    <c:if test="${param.error == 'empty_file'}">
+        <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
+            <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+            <span>Vui lòng chọn tệp Excel (.xlsx) có dữ liệu để thực hiện nhập điểm!</span>
+        </div>
+    </c:if>
+
+    <c:if test="${param.error == 'import_failed'}">
+        <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
+            <i class="fa-solid fa-circle-xmark text-rose-600"></i>
+            <span>Import file Excel thất bại! Vui lòng kiểm tra lại cấu trúc cột theo tệp mẫu chuẩn của trường.</span>
+        </div>
+    </c:if>
+
     <c:if test="${not empty param.errorMsg}">
         <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
             <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
-            <span><strong>Lỗi file Excel:</strong> ${param.errorMsg}</span>
+            <span><strong>Cảnh báo lỗi nhập liệu:</strong> ${param.errorMsg}</span>
         </div>
     </c:if>
 

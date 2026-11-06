@@ -71,6 +71,8 @@
                 <c:when test="${param.error == 'user_exists'}">Mã sinh viên đã tồn tại trong hệ thống!</c:when>
                 <c:when test="${param.error == 'empty_fields'}">Vui lòng điền đầy đủ các thông tin bắt buộc!</c:when>
                 <c:when test="${param.error == 'no_file'}">Vui lòng chọn tệp Excel (.xlsx) để tải lên!</c:when>
+                <c:when test="${param.error == 'not_found'}">Không tìm thấy thông tin lớp chuyên ngành yêu cầu!</c:when>
+                <c:when test="${param.error == 'operation_failed'}">Thao tác không thành công! Không thể xóa lớp vì đang có sinh viên trực thuộc.</c:when>
                 <c:otherwise>${param.error}</c:otherwise>
             </c:choose>
         </div>
